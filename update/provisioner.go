@@ -90,11 +90,7 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	}
 
 	if p.config.Username == "" {
-		p.config.Username = "vagrant"
-	}
-
-	if p.config.Password == "" {
-		p.config.Password = "vagrant"
+		p.config.Username = "SYSTEM"
 	}
 
 	var errs error
@@ -102,11 +98,6 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	if p.config.Username == "" {
 		errs = packer.MultiErrorAppend(errs,
 			errors.New("Must supply an 'username'"))
-	}
-
-	if p.config.Password == "" {
-		errs = packer.MultiErrorAppend(errs,
-			errors.New("Must supply an 'password'"))
 	}
 
 	return errs
