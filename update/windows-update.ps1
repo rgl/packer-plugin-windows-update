@@ -114,9 +114,8 @@ Write-Output 'Searching for Windows updates...'
 $updateSearcher = $updateSession.CreateUpdateSearcher()
 $updatesToDownload = New-Object -ComObject 'Microsoft.Update.UpdateColl'
 $searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Software' and IsHidden=0")
-$searchResult.Updates = $searchResult.Updates | select -First $UpdateLimit
 if ($searchResult.Updates.Count) {
-    for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
+    for ($i = 0; $i -lt $UpdateLimit; ++$i) {
         $update = $searchResult.Updates.Item($i)
 
         if ($update.InstallationBehavior.CanRequestUserInput) {
