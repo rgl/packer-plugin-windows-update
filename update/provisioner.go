@@ -22,7 +22,6 @@ const (
 	elevatedPath          = "C:/Windows/Temp/packer-windows-update-elevated.ps1"
 	elevatedCommand       = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update-elevated.ps1"
 	windowsUpdatePath     = "C:/Windows/Temp/packer-windows-update.ps1"
-	windowsUpdateCommand  = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1"
 	defaultRestartCommand = "shutdown.exe -f -r -t 0 -c \"packer restart\""
 	retryableSleep        = 5 * time.Second
 	tryCheckReboot        = "shutdown.exe -f -r -t 60"
@@ -31,6 +30,7 @@ const (
 
 var (
 	defaultRestartCheckCommand = winrm.Powershell(`echo "$env:COMPUTERNAME restarted."`)
+	windowsUpdateCommand string
 )
 
 type Config struct {
@@ -51,6 +51,9 @@ type Config struct {
 	// user by impersonating a logged-in user.
 	Username string `mapstructure:"username"`
 	Password string `mapstructure:"password"`
+
+	// Adds a limit to how many updates are installed at a time
+	UpdateLimit string `mapstructure:"updatelimit"`
 
 	ctx interpolate.Context
 }
@@ -98,6 +101,12 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	if p.config.Username == "" {
 		errs = packer.MultiErrorAppend(errs,
 			errors.New("Must supply an 'username'"))
+	}
+
+	if p.config.UpdateLimit == "" {
+		windowsUpdateCommand = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1 -UpdateLimit 1000"
+	} else {
+		windowsUpdateCommand = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1 -UpdateLimit " + p.config.UpdateLimit
 	}
 
 	return errs

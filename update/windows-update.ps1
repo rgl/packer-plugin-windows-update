@@ -13,6 +13,11 @@
 # see IUpdate interface
 #     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386099(v=vs.85).aspx
 
+param(
+    [AllowEmptyString()]
+    [int]$UpdateLimit = 100
+)
+
 $mock = $false
 
 Set-StrictMode -Version Latest
@@ -109,6 +114,7 @@ Write-Output 'Searching for Windows updates...'
 $updateSearcher = $updateSession.CreateUpdateSearcher()
 $updatesToDownload = New-Object -ComObject 'Microsoft.Update.UpdateColl'
 $searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Software' and IsHidden=0")
+$searchResult = $searchResult | select -First $UpdateLimit
 if ($searchResult.Updates.Count) {
     for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
         $update = $searchResult.Updates.Item($i)
