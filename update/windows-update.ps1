@@ -116,7 +116,7 @@ $updatesToDownload = New-Object -ComObject 'Microsoft.Update.UpdateColl'
 $searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Software' and IsHidden=0")
 if ($searchResult.Updates.Count) {
     for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
-        if($i -lt $UpdateLimit){
+        if($i -lt ($UpdateLimit - 1)){
             $update = $searchResult.Updates.Item($i)
 
             if ($update.InstallationBehavior.CanRequestUserInput) {
