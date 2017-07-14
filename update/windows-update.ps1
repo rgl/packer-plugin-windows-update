@@ -117,7 +117,6 @@ $searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Software' and Is
 if ($searchResult.Updates.Count) {
     for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
         if($i -lt $UpdateLimit){
-            write-output "i is $i and UpdateLimit is $updatelimit"
             $update = $searchResult.Updates.Item($i)
 
             if ($update.InstallationBehavior.CanRequestUserInput) {
