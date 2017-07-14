@@ -104,10 +104,10 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	}
 
 	if p.config.UpdateLimit == "" {
-		windowsUpdateCommand = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1 -UpdateLimit 1000"
-	} else {
-		windowsUpdateCommand = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1 -UpdateLimit " + p.config.UpdateLimit
+		p.config.UpdateLimit = "1000"
 	}
+	
+	windowsUpdateCommand = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1 -UpdateLimit " + p.config.UpdateLimit
 
 	return errs
 }
