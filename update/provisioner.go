@@ -22,7 +22,7 @@ const (
 	elevatedPath          = "C:/Windows/Temp/packer-windows-update-elevated.ps1"
 	elevatedCommand       = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update-elevated.ps1"
 	windowsUpdatePath     = "C:/Windows/Temp/packer-windows-update.ps1"
-	windowsUpdateCommand  = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1 -UpdateLimit %d"
+	windowsUpdateCommand  = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1 -UpdateLimit %v"
 	defaultRestartCommand = "shutdown.exe -f -r -t 0 -c \"packer restart\""
 	retryableSleep        = 5 * time.Second
 	tryCheckReboot        = "shutdown.exe -f -r -t 60"
