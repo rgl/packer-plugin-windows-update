@@ -94,7 +94,7 @@ function ExitWhenRebootRequired {
 
     if ($rebootRequired) {
         Write-Output 'Pending Reboot detected. Waiting for the Windows Modules Installer to exit...'
-        Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker,TrustedInstaller | Measure-Object).Count -eq 0}
+        Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0}
         Write-Output 'Rebooting...'
         Exit 101
     }
