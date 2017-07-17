@@ -121,7 +121,7 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 		Password:        p.config.Password,
 		TaskDescription: "Packer Windows update elevated task",
 		TaskName:        fmt.Sprintf("packer-windows-update-%s", uuid.TimeOrderedUUID()),
-		Command:         fmt.Sprintf(windowsUpdateCommand, p.config.UpdateLimit)
+		Command:         fmt.Sprintf(windowsUpdateCommand, p.config.UpdateLimit),
 	})
 	if err != nil {
 		fmt.Printf("Error creating elevated template: %s", err)
