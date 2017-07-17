@@ -22,6 +22,7 @@ const (
 	elevatedPath          = "C:/Windows/Temp/packer-windows-update-elevated.ps1"
 	elevatedCommand       = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update-elevated.ps1"
 	windowsUpdatePath     = "C:/Windows/Temp/packer-windows-update.ps1"
+	windowsUpdateCommand  = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1 %d"
 	defaultRestartCommand = "shutdown.exe -f -r -t 0 -c \"packer restart\""
 	retryableSleep        = 5 * time.Second
 	tryCheckReboot        = "shutdown.exe -f -r -t 60"
@@ -30,7 +31,6 @@ const (
 
 var (
 	defaultRestartCheckCommand = winrm.Powershell(`echo "$env:COMPUTERNAME restarted."`)
-	windowsUpdateCommand string
 )
 
 type Config struct {
@@ -104,10 +104,8 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	}
 
 	if p.config.UpdateLimit == "" {
-		p.config.UpdateLimit = "1000"
+		p.config.UpdateLimit = "100"
 	}
-	
-	windowsUpdateCommand = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1 -UpdateLimit " + p.config.UpdateLimit
 
 	return errs
 }
@@ -123,7 +121,7 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 		Password:        p.config.Password,
 		TaskDescription: "Packer Windows update elevated task",
 		TaskName:        fmt.Sprintf("packer-windows-update-%s", uuid.TimeOrderedUUID()),
-		Command:         windowsUpdateCommand,
+		Command:         fmt.Sprintf(windowsUpdateCommand, p.config.UpdateLimit)
 	})
 	if err != nil {
 		fmt.Printf("Error creating elevated template: %s", err)

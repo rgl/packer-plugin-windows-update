@@ -14,7 +14,6 @@
 #     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386099(v=vs.85).aspx
 
 param(
-    [AllowEmptyString()]
     [int]$UpdateLimit = 100
 )
 
@@ -116,24 +115,25 @@ $updatesToDownload = New-Object -ComObject 'Microsoft.Update.UpdateColl'
 $searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Software' and IsHidden=0")
 if ($searchResult.Updates.Count) {
     for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
-        if($i -lt $UpdateLimit){
-            $update = $searchResult.Updates.Item($i)
+        $update = $searchResult.Updates.Item($i)
 
-            if ($update.InstallationBehavior.CanRequestUserInput) {
-                continue
-            }
+        if ($update.InstallationBehavior.CanRequestUserInput) {
+            continue
+        }
 
-            $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
-            $updateSize = ($update.MaxDownloadSize/1024/1024).ToString('0.##')
-            Write-Output "Found Windows update ($updateDate; $updateSize MB): $($update.Title)"
+        $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
+        $updateSize = ($update.MaxDownloadSize/1024/1024).ToString('0.##')
+        Write-Output "Found Windows update ($updateDate; $updateSize MB): $($update.Title)"
 
-            $update.AcceptEula() | Out-Null
+        $update.AcceptEula() | Out-Null
 
-            if ($update.IsDownloaded) {
-                continue
-            }
+        if ($update.IsDownloaded) {
+            continue
+        }
 
-            $updatesToDownload.Add($update) | Out-Null
+        $updatesToDownload.Add($update) | Out-Null
+        if ($updatesToDownload.Count -ge $UpdateLimit) {
+            break
         }
     }
 
