@@ -103,7 +103,7 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 			errors.New("Must supply an 'username'"))
 	}
 
-	if p.config.UpdateLimit == "" {
+	if p.config.UpdateLimit == nil {
 		p.config.UpdateLimit = "100"
 	}
 
