@@ -53,7 +53,7 @@ type Config struct {
 	Password string `mapstructure:"password"`
 
 	// Adds a limit to how many updates are installed at a time
-	UpdateLimit string `mapstructure:"update_limit"`
+	UpdateLimit int `mapstructure:"update_limit"`
 
 	ctx interpolate.Context
 }
