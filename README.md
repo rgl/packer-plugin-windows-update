@@ -4,7 +4,7 @@
 
 This is a Packer plugin for installing Windows updates (akin to [rgl/vagrant-windows-update](https://github.com/rgl/vagrant-windows-update)).
 
-**NB** This was only tested with Packer 1.0.0 and Windows Server 2016.
+**NB** This was only tested with Packer 1.0.2 and Windows Server 2016.
 
 # Usage
 

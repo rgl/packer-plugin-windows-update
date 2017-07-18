@@ -22,7 +22,7 @@ const (
 	elevatedPath          = "C:/Windows/Temp/packer-windows-update-elevated.ps1"
 	elevatedCommand       = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update-elevated.ps1"
 	windowsUpdatePath     = "C:/Windows/Temp/packer-windows-update.ps1"
-	windowsUpdateCommand  = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1"
+	windowsUpdateCommand  = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1 -UpdateLimit %v"
 	defaultRestartCommand = "shutdown.exe -f -r -t 0 -c \"packer restart\""
 	retryableSleep        = 5 * time.Second
 	tryCheckReboot        = "shutdown.exe -f -r -t 60"
@@ -51,6 +51,9 @@ type Config struct {
 	// user by impersonating a logged-in user.
 	Username string `mapstructure:"username"`
 	Password string `mapstructure:"password"`
+
+	// Adds a limit to how many updates are installed at a time
+	UpdateLimit int `mapstructure:"update_limit"`
 
 	ctx interpolate.Context
 }
@@ -90,11 +93,7 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	}
 
 	if p.config.Username == "" {
-		p.config.Username = "vagrant"
-	}
-
-	if p.config.Password == "" {
-		p.config.Password = "vagrant"
+		p.config.Username = "SYSTEM"
 	}
 
 	var errs error
@@ -104,9 +103,8 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 			errors.New("Must supply an 'username'"))
 	}
 
-	if p.config.Password == "" {
-		errs = packer.MultiErrorAppend(errs,
-			errors.New("Must supply an 'password'"))
+	if p.config.UpdateLimit == 0 {
+		p.config.UpdateLimit = 100
 	}
 
 	return errs
@@ -123,7 +121,7 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 		Password:        p.config.Password,
 		TaskDescription: "Packer Windows update elevated task",
 		TaskName:        fmt.Sprintf("packer-windows-update-%s", uuid.TimeOrderedUUID()),
-		Command:         windowsUpdateCommand,
+		Command:         fmt.Sprintf(windowsUpdateCommand, p.config.UpdateLimit),
 	})
 	if err != nil {
 		fmt.Printf("Error creating elevated template: %s", err)

@@ -19,8 +19,6 @@ $t.XmlText = @'
     </RegistrationInfo>
     <Principals>
         <Principal id="Author">
-            <UserId>{{.Username}}</UserId>
-            <LogonType>Password</LogonType>
             <RunLevel>HighestAvailable</RunLevel>
         </Principal>
     </Principals>
@@ -51,8 +49,13 @@ $t.XmlText = @'
     </Actions>
 </Task>
 '@
+$username = "{{.Username}}"
+$password = "{{.Password}}"
+if (!$password) {
+    $password = $null
+}
 $f = $s.GetFolder("\")
-$f.RegisterTaskDefinition($name, $t, 6, "{{.Username}}", "{{.Password}}", 1, $null) | Out-Null
+$f.RegisterTaskDefinition($name, $t, 6, $username, $password, 1, $null) | Out-Null
 $t = $f.GetTask("\$name")
 $t.Run($null) | Out-Null
 $timeout = 10

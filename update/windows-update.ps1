@@ -13,6 +13,10 @@
 # see IUpdate interface
 #     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386099(v=vs.85).aspx
 
+param(
+    [int]$UpdateLimit = 100
+)
+
 $mock = $false
 
 Set-StrictMode -Version Latest
@@ -112,7 +116,7 @@ $searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Software' and Is
 if ($searchResult.Updates.Count) {
     for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
         $update = $searchResult.Updates.Item($i)
-
+            $update = $searchResult.Updates.Item($i)
         if ($update.InstallationBehavior.CanRequestUserInput) {
             continue
         }
@@ -128,6 +132,9 @@ if ($searchResult.Updates.Count) {
         }
 
         $updatesToDownload.Add($update) | Out-Null
+        if ($updatesToDownload.Count -ge $UpdateLimit) {
+            break
+        }
     }
 
     if ($updatesToDownload.Count) {
