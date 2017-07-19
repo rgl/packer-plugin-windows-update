@@ -116,6 +116,7 @@ $searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Software' and Is
 if ($searchResult.Updates.Count) {
     for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
         $update = $searchResult.Updates.Item($i)
+        
         if ($update.InstallationBehavior.CanRequestUserInput) {
             continue
         }
