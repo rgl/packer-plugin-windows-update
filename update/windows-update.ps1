@@ -84,16 +84,18 @@ function Wait-Condition {
     }
 }
 
-function ExitWhenRebootRequired {
+function ExitWhenRebootRequired($rebootRequired = $false) {
     # check for pending Windows Updates.
-    $systemInformation = New-Object -ComObject 'Microsoft.Update.SystemInfo'
-    $rebootRequired = $systemInformation.RebootRequired
+    if (!$rebootRequired) {
+        $systemInformation = New-Object -ComObject 'Microsoft.Update.SystemInfo'
+        $rebootRequired = $systemInformation.RebootRequired
+    }
 
     # check for pending Windows Features.
     if (!$rebootRequired) {
         $pendingPackagesKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackagesPending'
         $pendingPackagesCount = (Get-ChildItem -ErrorAction SilentlyContinue $pendingPackagesKey | Measure-Object).Count
-        $rebootRequired = $rebootRequired -or $pendingPackagesCount -gt 0
+        $rebootRequired = $pendingPackagesCount -gt 0
     }
 
     if ($rebootRequired) {
@@ -114,9 +116,11 @@ $updateSearcher = $updateSession.CreateUpdateSearcher()
 $updatesToDownload = New-Object -ComObject 'Microsoft.Update.UpdateColl'
 $searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Software' and IsHidden=0")
 if ($searchResult.Updates.Count) {
+    $rebootRequired = $false
+
     for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
         $update = $searchResult.Updates.Item($i)
-        
+
         if ($update.InstallationBehavior.CanRequestUserInput) {
             continue
         }
@@ -132,8 +136,9 @@ if ($searchResult.Updates.Count) {
         }
 
         $updatesToDownload.Add($update) | Out-Null
-        
+
         if ($updatesToDownload.Count -ge $UpdateLimit) {
+            $rebootRequired = $true
             break
         }
     }
@@ -150,6 +155,11 @@ if ($searchResult.Updates.Count) {
         $update = $searchResult.Updates.Item($i)
         if ($update.IsDownloaded) {
             $updatesToInstall.Add($update) | Out-Null
+
+            if ($updatesToInstall.Count -ge $UpdateLimit) {
+                $rebootRequired = $true
+                break
+            }
         }
     }
 
@@ -158,9 +168,7 @@ if ($searchResult.Updates.Count) {
         $updateInstaller = $updateSession.CreateUpdateInstaller()
         $updateInstaller.Updates = $updatesToInstall
         $installResult = $updateInstaller.Install()
-        if ($installResult.RebootRequired) {
-            ExitWhenRebootRequired
-        }
+        ExitWhenRebootRequired ($installResult.RebootRequired -or $rebootRequired)
     }
 } else {
     Write-Output 'No Windows updates found'
