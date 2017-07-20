@@ -1,2 +1,3 @@
 packer-provisioner-windows-update*
 bindata.go
+.idea/
