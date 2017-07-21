@@ -1,3 +1,7 @@
-packer-provisioner-windows-update*
+packer-provisioner-windows-update
+packer-provisioner-windows-update.exe
+packer-provisioner-windows-update-*.tgz
+packer-provisioner-windows-update-*.zip
+tmp*
 bindata.go
 .idea/

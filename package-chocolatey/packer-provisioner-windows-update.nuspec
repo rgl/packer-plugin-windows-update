@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>packer-provisioner-windows-update</id>
+    <version>@@VERSION@@</version>
+    <title>Packer Windows Update Provisioner</title>
+    <authors>Rui Lopes</authors>
+    <owners>Rui Lopes</owners>
+    <licenseUrl>https://github.com/rgl/packer-provisioner-windows-update/blob/master/LICENSE.txt</licenseUrl>
+    <packageSourceUrl>https://github.com/rgl/packer-provisioner-windows-update</packageSourceUrl>
+    <projectUrl>https://github.com/rgl/packer-provisioner-windows-update</projectUrl>
+    <projectSourceUrl>https://github.com/rgl/packer-provisioner-windows-update</projectSourceUrl>
+    <bugTrackerUrl>https://github.com/rgl/packer-provisioner-windows-update/issues</bugTrackerUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A Packer plugin for installing Windows updates.</description>
+    <summary>A Packer plugin for installing Windows updates.</summary>
+    <tags>packer windows-update</tags>
+  </metadata>
+  <files>
+    <file src="tools\*" target="tools" />
+  </files>
+</package>

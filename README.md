@@ -1,6 +1,8 @@
 # Packer Windows Update Provisioner
 
 [![Build status](https://ci.appveyor.com/api/projects/status/1bmqt9ywh82vhojt?svg=true)](https://ci.appveyor.com/project/rgl/packer-provisioner-windows-update)
+[![Latest version released](https://img.shields.io/chocolatey/v/packer-provisioner-windows-update.svg)](https://chocolatey.org/packages/packer-provisioner-windows-update)
+[![Package downloads count](https://img.shields.io/chocolatey/dt/packer-provisioner-windows-update.svg)](https://chocolatey.org/packages/packer-provisioner-windows-update)
 
 This is a Packer plugin for installing Windows updates (akin to [rgl/vagrant-windows-update](https://github.com/rgl/vagrant-windows-update)).
 
