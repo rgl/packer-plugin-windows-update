@@ -115,61 +115,59 @@ Write-Output 'Searching for Windows updates...'
 $updateSearcher = $updateSession.CreateUpdateSearcher()
 $updatesToDownload = New-Object -ComObject 'Microsoft.Update.UpdateColl'
 $searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Software' and IsHidden=0")
-if ($searchResult.Updates.Count) {
-    $rebootRequired = $false
+$rebootRequired = $false
+for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
+    $update = $searchResult.Updates.Item($i)
 
-    for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
-        $update = $searchResult.Updates.Item($i)
+    if ($update.InstallationBehavior.CanRequestUserInput) {
+        continue
+    }
 
-        if ($update.InstallationBehavior.CanRequestUserInput) {
-            continue
-        }
+    $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
+    $updateSize = ($update.MaxDownloadSize/1024/1024).ToString('0.##')
+    Write-Output "Found Windows update ($updateDate; $updateSize MB): $($update.Title)"
 
-        $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
-        $updateSize = ($update.MaxDownloadSize/1024/1024).ToString('0.##')
-        Write-Output "Found Windows update ($updateDate; $updateSize MB): $($update.Title)"
+    $update.AcceptEula() | Out-Null
 
-        $update.AcceptEula() | Out-Null
+    if ($update.IsDownloaded) {
+        continue
+    }
 
-        if ($update.IsDownloaded) {
-            continue
-        }
+    $updatesToDownload.Add($update) | Out-Null
 
-        $updatesToDownload.Add($update) | Out-Null
+    if ($updatesToDownload.Count -ge $UpdateLimit) {
+        $rebootRequired = $true
+        break
+    }
+}
 
-        if ($updatesToDownload.Count -ge $UpdateLimit) {
+if ($updatesToDownload.Count) {
+    Write-Output 'Downloading Windows updates...'
+    $updateDownloader = $updateSession.CreateUpdateDownloader()
+    $updateDownloader.Updates = $updatesToDownload
+    $updateDownloader.Download() | Out-Null
+}
+
+$updatesToInstall = New-Object -ComObject 'Microsoft.Update.UpdateColl'
+for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
+    $update = $searchResult.Updates.Item($i)
+    if ($update.IsDownloaded) {
+        $updatesToInstall.Add($update) | Out-Null
+
+        if ($updatesToInstall.Count -ge $UpdateLimit) {
             $rebootRequired = $true
             break
         }
     }
-
-    if ($updatesToDownload.Count) {
-        Write-Output 'Downloading Windows updates...'
-        $updateDownloader = $updateSession.CreateUpdateDownloader()
-        $updateDownloader.Updates = $updatesToDownload
-        $updateDownloader.Download() | Out-Null
-    }
-
-    $updatesToInstall = New-Object -ComObject 'Microsoft.Update.UpdateColl'
-    for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
-        $update = $searchResult.Updates.Item($i)
-        if ($update.IsDownloaded) {
-            $updatesToInstall.Add($update) | Out-Null
-
-            if ($updatesToInstall.Count -ge $UpdateLimit) {
-                $rebootRequired = $true
-                break
-            }
-        }
-    }
-
-    if ($updatesToInstall.Count) {
-        Write-Output 'Installing Windows updates...'
-        $updateInstaller = $updateSession.CreateUpdateInstaller()
-        $updateInstaller.Updates = $updatesToInstall
-        $installResult = $updateInstaller.Install()
-        ExitWhenRebootRequired ($installResult.RebootRequired -or $rebootRequired)
-    }
-} else {
-    Write-Output 'No Windows updates found'
 }
+
+if ($updatesToInstall.Count) {
+    Write-Output 'Installing Windows updates...'
+    $updateInstaller = $updateSession.CreateUpdateInstaller()
+    $updateInstaller.Updates = $updatesToInstall
+    $installResult = $updateInstaller.Install()
+    ExitWhenRebootRequired ($installResult.RebootRequired -or $rebootRequired)
+    Exit 0
+}
+
+Write-Output 'No Windows updates found'
