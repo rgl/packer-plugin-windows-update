@@ -109,7 +109,7 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
 ExitWhenRebootRequired
 
 $updateSession = New-Object -ComObject 'Microsoft.Update.Session'
-$updateSession.ClientApplicationID = 'vagrant-windows-update'
+$updateSession.ClientApplicationID = 'packer-windows-update'
 
 Write-Output 'Searching for Windows updates...'
 $updateSearcher = $updateSession.CreateUpdateSearcher()
