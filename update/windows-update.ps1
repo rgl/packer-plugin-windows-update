@@ -112,8 +112,9 @@ $updateSession = New-Object -ComObject 'Microsoft.Update.Session'
 $updateSession.ClientApplicationID = 'packer-windows-update'
 
 Write-Output 'Searching for Windows updates...'
-$updateSearcher = $updateSession.CreateUpdateSearcher()
 $updatesToDownload = New-Object -ComObject 'Microsoft.Update.UpdateColl'
+$updatesToInstall = New-Object -ComObject 'Microsoft.Update.UpdateColl'
+$updateSearcher = $updateSession.CreateUpdateSearcher()
 $searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Software' and IsHidden=0")
 $rebootRequired = $false
 for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
@@ -129,13 +130,12 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
 
     $update.AcceptEula() | Out-Null
 
-    if ($update.IsDownloaded) {
-        continue
+    if (!$update.IsDownloaded) {
+        $updatesToDownload.Add($update) | Out-Null
     }
 
-    $updatesToDownload.Add($update) | Out-Null
-
-    if ($updatesToDownload.Count -ge $UpdateLimit) {
+    $updatesToInstall.Add($update) | Out-Null
+    if ($updatesToInstall.Count -ge $UpdateLimit) {
         $rebootRequired = $true
         break
     }
@@ -148,26 +148,12 @@ if ($updatesToDownload.Count) {
     $updateDownloader.Download() | Out-Null
 }
 
-$updatesToInstall = New-Object -ComObject 'Microsoft.Update.UpdateColl'
-for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
-    $update = $searchResult.Updates.Item($i)
-    if ($update.IsDownloaded) {
-        $updatesToInstall.Add($update) | Out-Null
-
-        if ($updatesToInstall.Count -ge $UpdateLimit) {
-            $rebootRequired = $true
-            break
-        }
-    }
-}
-
 if ($updatesToInstall.Count) {
     Write-Output 'Installing Windows updates...'
     $updateInstaller = $updateSession.CreateUpdateInstaller()
     $updateInstaller.Updates = $updatesToInstall
     $installResult = $updateInstaller.Install()
     ExitWhenRebootRequired ($installResult.RebootRequired -or $rebootRequired)
-    Exit 0
+} else {
+    Write-Output 'No Windows updates found'
 }
-
-Write-Output 'No Windows updates found'
