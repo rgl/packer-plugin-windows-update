@@ -4,11 +4,14 @@ package update
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
+	"unicode/utf16"
 
 	"github.com/hashicorp/packer/common"
 	"github.com/hashicorp/packer/common/uuid"
@@ -22,7 +25,6 @@ const (
 	elevatedPath          = "C:/Windows/Temp/packer-windows-update-elevated.ps1"
 	elevatedCommand       = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update-elevated.ps1"
 	windowsUpdatePath     = "C:/Windows/Temp/packer-windows-update.ps1"
-	windowsUpdateCommand  = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update.ps1 -UpdateLimit %v"
 	defaultRestartCommand = "shutdown.exe -f -r -t 0 -c \"packer restart\""
 	retryableSleep        = 5 * time.Second
 	tryCheckReboot        = "shutdown.exe -f -r -t 60"
@@ -51,6 +53,10 @@ type Config struct {
 	// user by impersonating a logged-in user.
 	Username string `mapstructure:"username"`
 	Password string `mapstructure:"password"`
+
+	// Filters the installed Windows updates. If no filter is
+	// matched the update is NOT installed.
+	Filters []string `mapstructure:"filters"`
 
 	// Adds a limit to how many updates are installed at a time
 	UpdateLimit int `mapstructure:"update_limit"`
@@ -121,7 +127,7 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 		Password:        p.config.Password,
 		TaskDescription: "Packer Windows update elevated task",
 		TaskName:        fmt.Sprintf("packer-windows-update-%s", uuid.TimeOrderedUUID()),
-		Command:         fmt.Sprintf(windowsUpdateCommand, p.config.UpdateLimit),
+		Command:         p.windowsUpdateCommand(),
 	})
 	if err != nil {
 		fmt.Printf("Error creating elevated template: %s", err)
@@ -331,4 +337,51 @@ func (p *Provisioner) retryable(f func() error) error {
 			time.Sleep(retryableSleep)
 		}
 	}
+}
+
+func (p *Provisioner) windowsUpdateCommand() string {
+	return fmt.Sprintf(
+		"PowerShell -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand %s",
+		base64.StdEncoding.EncodeToString(
+			encodeUtf16Le(fmt.Sprintf(
+				"%s%s -UpdateLimit %d",
+				windowsUpdatePath,
+				filtersArgument(p.config.Filters),
+				p.config.UpdateLimit))))
+}
+
+func encodeUtf16Le(s string) []byte {
+	d := utf16.Encode([]rune(s))
+	b := make([]byte, len(d)*2)
+	for i, r := range d {
+		b[i*2] = byte(r)
+		b[i*2+1] = byte(r >> 8)
+	}
+	return b
+}
+
+func filtersArgument(filters []string) string {
+	if filters == nil {
+		return ""
+	}
+
+	var buffer bytes.Buffer
+
+	buffer.WriteString(" -Filters ")
+
+	for i, filter := range filters {
+		if i > 0 {
+			buffer.WriteString(",")
+		}
+		buffer.WriteString(escapePowerShellString(filter))
+	}
+
+	return buffer.String()
+}
+
+func escapePowerShellString(value string) string {
+	return fmt.Sprintf(
+		"'%s'",
+		// escape single quotes with another single quote.
+		strings.Replace(value, "'", "''", -1))
 }

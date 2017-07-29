@@ -14,6 +14,7 @@
 #     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386099(v=vs.85).aspx
 
 param(
+    [string[]]$Filters = @('include:$_.AutoSelectOnWebSites'),
     [int]$UpdateLimit = 100
 )
 
@@ -108,6 +109,23 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
 
 ExitWhenRebootRequired
 
+$updateFilters = $Filters | ForEach-Object {
+    $action, $expression = $_ -split ':',2
+    New-Object PSObject -Property @{
+        Action = $action
+        Expression = [ScriptBlock]::Create($expression)
+    }
+}
+
+function Test-IncludeUpdate($filters, $update) {
+    foreach ($filter in $filters) {
+        if (Where-Object -InputObject $update $filter.Expression) {
+            return $filter.Action -eq 'include'
+        }
+    }
+    return $false
+}
+
 $updateSession = New-Object -ComObject 'Microsoft.Update.Session'
 $updateSession.ClientApplicationID = 'packer-windows-update'
 
@@ -119,18 +137,21 @@ $searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Software' and Is
 $rebootRequired = $false
 for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $update = $searchResult.Updates.Item($i)
-
-    if ($update.InstallationBehavior.CanRequestUserInput) {
-        continue
-    }
-
-    if (!$update.AutoSelectOnWebSites) {
-        continue
-    }
-
     $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
     $updateSize = ($update.MaxDownloadSize/1024/1024).ToString('0.##')
-    Write-Output "Found Windows update ($updateDate; $updateSize MB): $($update.Title)"
+    $updateSummary = "Windows update ($updateDate; $updateSize MB): $($update.Title)"
+
+    if ($update.InstallationBehavior.CanRequestUserInput) {
+        Write-Output "Skipped (CanRequestUserInput) $updateSummary"
+        continue
+    }
+
+    if (!(Test-IncludeUpdate $updateFilters $update)) {
+        Write-Output "Skipped (filter) $updateSummary"
+        continue
+    }
+
+    Write-Output "Found $updateSummary"
 
     $update.AcceptEula() | Out-Null
 
