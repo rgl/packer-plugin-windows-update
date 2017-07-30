@@ -27,6 +27,6 @@ package-chocolatey: package
 	choco pack tmp-package-chocolatey/*.nuspec
 
 clean:
-	rm -f packer-provisioner-windows-update* tmp* update/bindata.go
+	rm -rf packer-provisioner-windows-update* tmp* update/bindata.go
 
 .PHONY: build dist package package-chocolatey clean

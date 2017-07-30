@@ -124,6 +124,10 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
         continue
     }
 
+    if (!$update.AutoSelectOnWebSites) {
+        continue
+    }
+
     $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
     $updateSize = ($update.MaxDownloadSize/1024/1024).ToString('0.##')
     Write-Output "Found Windows update ($updateDate; $updateSize MB): $($update.Title)"
