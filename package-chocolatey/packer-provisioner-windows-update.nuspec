@@ -12,8 +12,9 @@
     <projectSourceUrl>https://github.com/rgl/packer-provisioner-windows-update</projectSourceUrl>
     <bugTrackerUrl>https://github.com/rgl/packer-provisioner-windows-update/issues</bugTrackerUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>A Packer plugin for installing Windows updates.</description>
-    <summary>A Packer plugin for installing Windows updates.</summary>
+    <description>A Packer plugin for installing Windows updates.
+
+**NB** This installs the plugin inside your user profile at `%APPDATA%\packer.d\plugins`.</description>
     <tags>packer windows-update</tags>
   </metadata>
   <files>
