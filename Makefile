@@ -1,6 +1,9 @@
-build: packer-provisioner-windows-update packer-provisioner-windows-update.exe
+build: packer-provisioner-windows-update-mac packer-provisioner-windows-update-linux packer-provisioner-windows-update.exe
 
-packer-provisioner-windows-update: *.go update/* update/bindata.go
+packer-provisioner-windows-update-mac: *.go update/* update/bindata.go
+	GOOS=darwin GOARCH=amd64 go build -v -o $@
+
+packer-provisioner-windows-update-linux: *.go update/* update/bindata.go
 	GOOS=linux GOARCH=amd64 go build -v -o $@
 
 packer-provisioner-windows-update.exe: *.go update/* update/bindata.go
@@ -12,7 +15,8 @@ update/bindata.go: update/*.ps1
 dist: package-chocolatey
 
 package: build
-	tar -czf packer-provisioner-windows-update-linux.tgz packer-provisioner-windows-update
+	tar -czf packer-provisioner-windows-update-linux.tgz packer-provisioner-windows-update-linux
+	tar -czf packer-provisioner-windows-update-macos.tgz packer-provisioner-windows-update-mac
 	zip packer-provisioner-windows-update-windows.zip packer-provisioner-windows-update.exe
 
 package-chocolatey: package
