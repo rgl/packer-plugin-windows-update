@@ -20,6 +20,11 @@ param(
 
 $mock = $false
 
+function ExitWithCode($exitCode) {
+    $host.SetShouldExit($exitCode)
+    Exit
+}
+
 Set-StrictMode -Version Latest
 
 $ErrorActionPreference = 'Stop'
@@ -28,7 +33,7 @@ trap {
     Write-Output "ERROR: $_"
     Write-Output (($_.ScriptStackTrace -split '\r?\n') -replace '^(.*)$','ERROR: $1')
     Write-Output (($_.Exception.ToString() -split '\r?\n') -replace '^(.*)$','ERROR EXCEPTION: $1')
-    Exit 1
+    ExitWithCode 1
 }
 
 if ($mock) {
@@ -41,10 +46,10 @@ if ($mock) {
         Write-Output "Synthetic reboot countdown counter is at $count"
         Set-Content $mockWindowsUpdatePath (--$count)
         Write-Output 'Rebooting...'
-        Exit 101
+        ExitWithCode 101
     }
     Write-Output 'No Windows updates found'
-    Exit 0
+    ExitWithCode 0
 }
 
 Add-Type @'
@@ -103,7 +108,7 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
         Write-Output 'Pending Reboot detected. Waiting for the Windows Modules Installer to exit...'
         Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0}
         Write-Output 'Rebooting...'
-        Exit 101
+        ExitWithCode 101
     }
 }
 
