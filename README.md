@@ -75,7 +75,6 @@ Install the dependencies:
 
 ```bash
 go get -u github.com/hashicorp/packer/packer/plugin
-go get -u github.com/masterzen/winrm
 go get -u github.com/jteeuwen/go-bindata/...
 ```
 
