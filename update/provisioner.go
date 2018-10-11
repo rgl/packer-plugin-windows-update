@@ -54,6 +54,10 @@ type Config struct {
 	Username string `mapstructure:"username"`
 	Password string `mapstructure:"password"`
 
+	// The updates search criteria.
+	// See the IUpdateSearcher::Search method at https://docs.microsoft.com/en-us/windows/desktop/api/wuapi/nf-wuapi-iupdatesearcher-search.
+	SearchCriteria string `mapstructure:"search_criteria"`
+
 	// Filters the installed Windows updates. If no filter is
 	// matched the update is NOT installed.
 	Filters []string `mapstructure:"filters"`
@@ -344,8 +348,9 @@ func (p *Provisioner) windowsUpdateCommand() string {
 		"PowerShell -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand %s",
 		base64.StdEncoding.EncodeToString(
 			encodeUtf16Le(fmt.Sprintf(
-				"%s%s -UpdateLimit %d",
+				"%s%s%s -UpdateLimit %d",
 				windowsUpdatePath,
+				searchCriteriaArgument(p.config.SearchCriteria),
 				filtersArgument(p.config.Filters),
 				p.config.UpdateLimit))))
 }
@@ -358,6 +363,19 @@ func encodeUtf16Le(s string) []byte {
 		b[i*2+1] = byte(r >> 8)
 	}
 	return b
+}
+
+func searchCriteriaArgument(searchCriteria string) string {
+	if searchCriteria == "" {
+		return ""
+	}
+
+	var buffer bytes.Buffer
+
+	buffer.WriteString(" -SearchCriteria ")
+	buffer.WriteString(escapePowerShellString(searchCriteria))
+
+	return buffer.String()
 }
 
 func filtersArgument(filters []string) string {

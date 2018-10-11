@@ -6,15 +6,20 @@
 #     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386854(v=vs.85).aspx
 # see IUpdateSearcher interface
 #     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386515(v=vs.85).aspx
+# see IUpdateSearcher::Search method
+#     at https://docs.microsoft.com/en-us/windows/desktop/api/wuapi/nf-wuapi-iupdatesearcher-search
 # see IUpdateDownloader interface
 #     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386131(v=vs.85).aspx
 # see IUpdateCollection interface
 #     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386107(v=vs.85).aspx
 # see IUpdate interface
 #     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386099(v=vs.85).aspx
+# see xWindowsUpdateAgent DSC resource
+#     at https://github.com/PowerShell/xWindowsUpdate/blob/dev/DscResources/MSFT_xWindowsUpdateAgent/MSFT_xWindowsUpdateAgent.psm1
 
 param(
-    [string[]]$Filters = @('include:$_.AutoSelectOnWebSites'),
+    [string]$SearchCriteria = 'IsAssigned=1 and IsInstalled=0 and IsHidden=0',
+    [string[]]$Filters = @('include:$true'),
     [int]$UpdateLimit = 100
 )
 
@@ -138,7 +143,7 @@ Write-Output 'Searching for Windows updates...'
 $updatesToDownload = New-Object -ComObject 'Microsoft.Update.UpdateColl'
 $updatesToInstall = New-Object -ComObject 'Microsoft.Update.UpdateColl'
 $updateSearcher = $updateSession.CreateUpdateSearcher()
-$searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Software' and IsHidden=0")
+$searchResult = $updateSearcher.Search($SearchCriteria)
 $rebootRequired = $false
 for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $update = $searchResult.Updates.Item($i)

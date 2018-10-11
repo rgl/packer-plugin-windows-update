@@ -6,7 +6,7 @@
 
 This is a Packer plugin for installing Windows updates (akin to [rgl/vagrant-windows-update](https://github.com/rgl/vagrant-windows-update)).
 
-**NB** This was only tested with Packer 1.2.2 and Windows Server 2016.
+**NB** This was only tested with Packer 1.2.5 and Windows Server 2016.
 
 # Usage
 
@@ -25,26 +25,31 @@ Use the provisioner from your packer template file, e.g. like in [rgl/windows-20
 }
 ```
 
-## Filters
+## Search Criteria, Filters and Update Limit
 
-You can select which Windows Updates are installed by defining a set of filters, e.g.:
+You can select which Windows Updates are installed by defining the search criteria, a set of filters, and how many updates are installed at a time, e.g.:
 
 ```json
 {
     "provisioners": [
         {
             "type": "windows-update",
+            "search_criteria": "IsAssigned=1 and IsInstalled=0 and IsHidden=0",
             "filters": [
                 "exclude:$_.Title -like '*Preview*'",
-                "include:$_.Title -like '*Cumulative Update for Windows*'",
-                "include:$_.AutoSelectOnWebSites"
-            ]
+                "include:$true"
+            ],
+            "update_limit": 25
         }
     ]
 }
 ```
 
-**NB** If the `filters` attribute is not declared, only important updates are installed (equivalent of declaring a single `include:$_.AutoSelectOnWebSites` filter).
+**NB** If the `search_criteria` attribute is not declared, it defaults to `IsAssigned=1 and IsInstalled=0 and IsHidden=0`, which should search for important updates. For more information see the [IUpdateSearcher::Search method](https://docs.microsoft.com/en-us/windows/desktop/api/wuapi/nf-wuapi-iupdatesearcher-search) documentation and the [xWindowsUpdateAgent DSC resource source](https://github.com/PowerShell/xWindowsUpdate/blob/dev/DscResources/MSFT_xWindowsUpdateAgent/MSFT_xWindowsUpdateAgent.psm1).
+
+**NB** If the `filters` attribute is not declared, it defaults to `include:$true`.
+
+**NB** If the `update_limit` attribute is not declared, it defaults to `100`.
 
 The general filter syntax is:
 
