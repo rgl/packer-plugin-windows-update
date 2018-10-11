@@ -144,6 +144,7 @@ $updateSession = New-Object -ComObject 'Microsoft.Update.Session'
 $updateSession.ClientApplicationID = 'packer-windows-update'
 
 Write-Output 'Searching for Windows updates...'
+$updatesToDownloadSize = 0
 $updatesToDownload = New-Object -ComObject 'Microsoft.Update.UpdateColl'
 $updatesToInstall = New-Object -ComObject 'Microsoft.Update.UpdateColl'
 $updateSearcher = $updateSession.CreateUpdateSearcher()
@@ -170,6 +171,7 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $update.AcceptEula() | Out-Null
 
     if (!$update.IsDownloaded) {
+        $updatesToDownloadSize += $update.MaxDownloadSize
         $updatesToDownload.Add($update) | Out-Null
     }
 
@@ -181,7 +183,8 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
 }
 
 if ($updatesToDownload.Count) {
-    Write-Output 'Downloading Windows updates...'
+    $updateSize = ($updatesToDownloadSize/1024/1024).ToString('0.##')
+    Write-Output "Downloading Windows updates ($($updatesToDownload.Count) updates; $updateSize MB)..."
     $updateDownloader = $updateSession.CreateUpdateDownloader()
     $updateDownloader.Updates = $updatesToDownload
     $updateDownloader.Download() | Out-Null
