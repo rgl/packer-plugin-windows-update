@@ -20,7 +20,8 @@
 param(
     [string]$SearchCriteria = 'IsAssigned=1 and IsInstalled=0 and IsHidden=0',
     [string[]]$Filters = @('include:$true'),
-    [int]$UpdateLimit = 100
+    [int]$UpdateLimit = 100,
+    [switch]$OnlyCheckForRebootRequired = $false
 )
 
 $mock = $false
@@ -50,7 +51,6 @@ if ($mock) {
     if ($count) {
         Write-Output "Synthetic reboot countdown counter is at $count"
         Set-Content $mockWindowsUpdatePath (--$count)
-        Write-Output 'Rebooting...'
         ExitWithCode 101
     }
     Write-Output 'No Windows updates found'
@@ -110,14 +110,18 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
     }
 
     if ($rebootRequired) {
-        Write-Output 'Pending Reboot detected. Waiting for the Windows Modules Installer to exit...'
+        Write-Output 'Waiting for the Windows Modules Installer to exit...'
         Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0}
-        Write-Output 'Rebooting...'
         ExitWithCode 101
     }
 }
 
 ExitWhenRebootRequired
+
+if ($OnlyCheckForRebootRequired) {
+    Write-Output "$env:COMPUTERNAME restarted."
+    ExitWithCode 0
+}
 
 $updateFilters = $Filters | ForEach-Object {
     $action, $expression = $_ -split ':',2

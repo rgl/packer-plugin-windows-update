@@ -18,32 +18,22 @@ import (
 	"github.com/hashicorp/packer/helper/config"
 	"github.com/hashicorp/packer/packer"
 	"github.com/hashicorp/packer/template/interpolate"
-	"github.com/masterzen/winrm"
 )
 
 const (
-	elevatedPath          = "C:/Windows/Temp/packer-windows-update-elevated.ps1"
-	elevatedCommand       = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update-elevated.ps1"
-	windowsUpdatePath     = "C:/Windows/Temp/packer-windows-update.ps1"
-	defaultRestartCommand = "shutdown.exe -f -r -t 0 -c \"packer restart\""
-	retryableSleep        = 5 * time.Second
-	tryCheckReboot        = "shutdown.exe -f -r -t 60"
-	abortReboot           = "shutdown.exe -a"
-)
-
-var (
-	defaultRestartCheckCommand = winrm.Powershell(`echo "$env:COMPUTERNAME restarted."`)
+	elevatedPath                 = "C:/Windows/Temp/packer-windows-update-elevated.ps1"
+	elevatedCommand              = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update-elevated.ps1"
+	windowsUpdatePath            = "C:/Windows/Temp/packer-windows-update.ps1"
+	pendingRebootElevatedPath    = "C:/Windows/Temp/packer-windows-update-pending-reboot-elevated.ps1"
+	pendingRebootElevatedCommand = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update-pending-reboot-elevated.ps1"
+	restartCommand               = "shutdown.exe -f -r -t 0 -c \"packer restart\""
+	retryableSleep               = 5 * time.Second
+	tryCheckReboot               = "shutdown.exe -f -r -t 60"
+	abortReboot                  = "shutdown.exe -a"
 )
 
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
-
-	// The command used to restart the guest machine
-	RestartCommand string `mapstructure:"restart_command"`
-
-	// The command used to check if the guest machine has restarted
-	// The output of this command will be displayed to the user
-	RestartCheckCommand string `mapstructure:"restart_check_command"`
 
 	// The timeout for waiting for the machine to restart
 	RestartTimeout time.Duration `mapstructure:"restart_timeout"`
@@ -90,14 +80,6 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 		return err
 	}
 
-	if p.config.RestartCommand == "" {
-		p.config.RestartCommand = defaultRestartCommand
-	}
-
-	if p.config.RestartCheckCommand == "" {
-		p.config.RestartCheckCommand = defaultRestartCheckCommand
-	}
-
 	if p.config.RestartTimeout == 0 {
 		p.config.RestartTimeout = 4 * time.Hour
 	}
@@ -139,6 +121,27 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 	}
 	err = p.comm.Upload(
 		elevatedPath,
+		bytes.NewReader(buffer.Bytes()),
+		nil)
+	if err != nil {
+		return err
+	}
+
+	p.ui.Say("Uploading the Windows update check for reboot required elevated script...")
+	buffer.Reset()
+	err = elevatedTemplate.Execute(&buffer, elevatedOptions{
+		Username:        p.config.Username,
+		Password:        p.config.Password,
+		TaskDescription: "Packer Windows update pending reboot elevated task",
+		TaskName:        fmt.Sprintf("packer-windows-update-pending-reboot-%s", uuid.TimeOrderedUUID()),
+		Command:         p.windowsUpdateCheckForRebootRequiredCommand(),
+	})
+	if err != nil {
+		fmt.Printf("Error creating elevated template: %s", err)
+		return err
+	}
+	err = p.comm.Upload(
+		pendingRebootElevatedPath,
 		bytes.NewReader(buffer.Bytes()),
 		nil)
 	if err != nil {
@@ -201,7 +204,7 @@ func (p *Provisioner) restart() error {
 
 	var cmd *packer.RemoteCmd
 	err := p.retryable(func() error {
-		cmd = &packer.RemoteCmd{Command: p.config.RestartCommand}
+		cmd = &packer.RemoteCmd{Command: restartCommand}
 		return cmd.StartWithUi(p.comm, p.ui)
 	})
 
@@ -282,8 +285,6 @@ WaitLoop:
 }
 
 func waitForCommunicator(p *Provisioner) error {
-	cmd := &packer.RemoteCmd{Command: p.config.RestartCheckCommand}
-
 	for {
 		select {
 		case <-p.cancel:
@@ -292,11 +293,16 @@ func waitForCommunicator(p *Provisioner) error {
 		case <-time.After(retryableSleep):
 		}
 
-		log.Printf("Attempting to communicator to machine with: '%s'", cmd.Command)
+		cmd := &packer.RemoteCmd{Command: pendingRebootElevatedCommand}
+		log.Printf("Executing remote command: %s", cmd.Command)
 
 		err := cmd.StartWithUi(p.comm, p.ui)
 		if err != nil {
 			log.Printf("Communication connection err: %s", err)
+			continue
+		}
+		if cmd.ExitStatus != 0 {
+			log.Printf("Machine not yet available (exit status %d)", cmd.ExitStatus)
 			continue
 		}
 
@@ -353,6 +359,15 @@ func (p *Provisioner) windowsUpdateCommand() string {
 				searchCriteriaArgument(p.config.SearchCriteria),
 				filtersArgument(p.config.Filters),
 				p.config.UpdateLimit))))
+}
+
+func (p *Provisioner) windowsUpdateCheckForRebootRequiredCommand() string {
+	return fmt.Sprintf(
+		"PowerShell -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand %s",
+		base64.StdEncoding.EncodeToString(
+			encodeUtf16Le(fmt.Sprintf(
+				"%s -OnlyCheckForRebootRequired",
+				windowsUpdatePath))))
 }
 
 func encodeUtf16Le(s string) []byte {
