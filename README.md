@@ -27,14 +27,27 @@ Use the provisioner from your packer template file, e.g. like in [rgl/windows-20
 
 ## Search Criteria, Filters and Update Limit
 
-You can select which Windows Updates are installed by defining the search criteria, a set of filters, and how many updates are installed at a time, e.g.:
+You can select which Windows Updates are installed by defining the search criteria, a set of filters, and how many updates are installed at a time.
+
+Normally you would use one of the following settings:
+
+| Name          | `search_criteria`                           | `filters`       |
+|---------------|---------------------------------------------|-----------------|
+| Important     | `AutoSelectOnWebSites=1 and IsInstalled=0`  | `$true`         |
+| Recommended   | `BrowseOnly=0 and IsInstalled=0`            | `$true`         |
+| All           | `IsInstalled=0`                             | `$true`         |
+| Optional Only | `AutoSelectOnWebSites=0 and IsInstalled=0`  | `$_.BrowseOnly` |
+
+**NB** `Recommended` is the default setting.
+
+But you can customize them, e.g.:
 
 ```json
 {
     "provisioners": [
         {
             "type": "windows-update",
-            "search_criteria": "IsAssigned=1 and IsInstalled=0 and IsHidden=0",
+            "search_criteria": "IsInstalled=0",
             "filters": [
                 "exclude:$_.Title -like '*Preview*'",
                 "include:$true"
@@ -45,11 +58,7 @@ You can select which Windows Updates are installed by defining the search criter
 }
 ```
 
-**NB** If the `search_criteria` attribute is not declared, it defaults to `IsAssigned=1 and IsInstalled=0 and IsHidden=0`, which should search for important updates. For more information see the [IUpdateSearcher::Search method](https://docs.microsoft.com/en-us/windows/desktop/api/wuapi/nf-wuapi-iupdatesearcher-search) documentation and the [xWindowsUpdateAgent DSC resource source](https://github.com/PowerShell/xWindowsUpdate/blob/dev/DscResources/MSFT_xWindowsUpdateAgent/MSFT_xWindowsUpdateAgent.psm1).
-
-**NB** If the `filters` attribute is not declared, it defaults to `include:$true`.
-
-**NB** If the `update_limit` attribute is not declared, it defaults to `100`.
+**NB** For more information about the search criteria see the [IUpdateSearcher::Search method](https://docs.microsoft.com/en-us/windows/desktop/api/wuapi/nf-wuapi-iupdatesearcher-search) documentation and the [xWindowsUpdateAgent DSC resource source](https://github.com/PowerShell/xWindowsUpdate/blob/dev/DscResources/MSFT_xWindowsUpdateAgent/MSFT_xWindowsUpdateAgent.psm1).
 
 The general filter syntax is:
 

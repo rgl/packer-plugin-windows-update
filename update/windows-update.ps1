@@ -16,9 +16,16 @@
 #     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386099(v=vs.85).aspx
 # see xWindowsUpdateAgent DSC resource
 #     at https://github.com/PowerShell/xWindowsUpdate/blob/dev/DscResources/MSFT_xWindowsUpdateAgent/MSFT_xWindowsUpdateAgent.psm1
+# NB you can install common sets of updates with one of these settings:
+#       | Name          | SearchCriteria                            | Filters       |
+#       |---------------|-------------------------------------------|---------------|
+#       | Important     | AutoSelectOnWebSites=1 and IsInstalled=0  | $true         |
+#       | Recommended   | BrowseOnly=0 and IsInstalled=0            | $true         |
+#       | All           | IsInstalled=0                             | $true         |
+#       | Optional Only | AutoSelectOnWebSites=0 and IsInstalled=0  | $_.BrowseOnly |
 
 param(
-    [string]$SearchCriteria = 'IsAssigned=1 and IsInstalled=0 and IsHidden=0',
+    [string]$SearchCriteria = 'BrowseOnly=0 and IsInstalled=0',
     [string[]]$Filters = @('include:$true'),
     [int]$UpdateLimit = 100,
     [switch]$OnlyCheckForRebootRequired = $false
