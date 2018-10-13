@@ -39,9 +39,8 @@ function ExitWithCode($exitCode) {
 }
 
 Set-StrictMode -Version Latest
-
 $ErrorActionPreference = 'Stop'
-
+$ProgressPreference = 'SilentlyContinue'
 trap {
     Write-Output "ERROR: $_"
     Write-Output (($_.ScriptStackTrace -split '\r?\n') -replace '^(.*)$','ERROR: $1')
@@ -193,8 +192,25 @@ if ($updatesToDownload.Count) {
     $updateSize = ($updatesToDownloadSize/1024/1024).ToString('0.##')
     Write-Output "Downloading Windows updates ($($updatesToDownload.Count) updates; $updateSize MB)..."
     $updateDownloader = $updateSession.CreateUpdateDownloader()
+    $updateDownloader.Priority = 4 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh), 4 (dpExtraHigh).
     $updateDownloader.Updates = $updatesToDownload
-    $updateDownloader.Download() | Out-Null
+    while ($true) {
+        $downloadResult = $updateDownloader.Download()
+        if ($downloadResult.ResultCode -eq 2) {
+            break
+        }
+        $downloadStatus = switch ($downloadResult.ResultCode) {
+            0 {'NotStarted'}
+            1 {'InProgress'}
+            2 {'Downloaded'}
+            3 {'DownloadedWithErrors'}
+            4 {'Failed'}
+            5 {'Aborted'}
+            default {$downloadResult.ResultCode}
+        }
+        Write-Output "Download Windows updates failed with $downloadStatus. Retrying..."
+        Start-Sleep -Seconds 5
+    }
 }
 
 if ($updatesToInstall.Count) {
