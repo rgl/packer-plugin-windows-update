@@ -60,7 +60,7 @@ But you can customize them, e.g.:
 
 **NB** For more information about the search criteria see the [IUpdateSearcher::Search method](https://docs.microsoft.com/en-us/windows/desktop/api/wuapi/nf-wuapi-iupdatesearcher-search) documentation and the [xWindowsUpdateAgent DSC resource source](https://github.com/PowerShell/xWindowsUpdate/blob/dev/DscResources/MSFT_xWindowsUpdateAgent/MSFT_xWindowsUpdateAgent.psm1).
 
-**NB** If the `update_limit` attribute is not declared, it defaults to `100`.
+**NB** If the `update_limit` attribute is not declared, it defaults to `1000`.
 
 The general filter syntax is:
 

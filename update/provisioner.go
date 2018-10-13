@@ -96,7 +96,7 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	}
 
 	if p.config.UpdateLimit == 0 {
-		p.config.UpdateLimit = 100
+		p.config.UpdateLimit = 1000
 	}
 
 	return errs
