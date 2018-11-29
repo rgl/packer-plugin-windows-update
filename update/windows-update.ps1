@@ -146,6 +146,7 @@ function Test-IncludeUpdate($filters, $update) {
     return $false
 }
 
+$windowsOsVersion = [System.Environment]::OSVersion.Version
 $updateSession = New-Object -ComObject 'Microsoft.Update.Session'
 $updateSession.ClientApplicationID = 'packer-windows-update'
 
@@ -192,7 +193,13 @@ if ($updatesToDownload.Count) {
     $updateSize = ($updatesToDownloadSize/1024/1024).ToString('0.##')
     Write-Output "Downloading Windows updates ($($updatesToDownload.Count) updates; $updateSize MB)..."
     $updateDownloader = $updateSession.CreateUpdateDownloader()
-    $updateDownloader.Priority = 4 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh), 4 (dpExtraHigh).
+    # https://docs.microsoft.com/en-us/windows/desktop/api/winnt/ns-winnt-_osversioninfoexa#remarks
+    # In Server 2008 r2 highest prioirty is 3
+    if ($windowsOsVersion.Major -ge 6 -and $windowsOsVersion.Minor -gt 1) {
+        $updateDownloader.Priority = 4 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh), 4 (dpExtraHigh).
+    } else {
+        $updateDownloader.Priority = 3 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh).
+    }
     $updateDownloader.Updates = $updatesToDownload
     while ($true) {
         $downloadResult = $updateDownloader.Download()
