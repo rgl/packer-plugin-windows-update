@@ -194,10 +194,10 @@ if ($updatesToDownload.Count) {
     Write-Output "Downloading Windows updates ($($updatesToDownload.Count) updates; $updateSize MB)..."
     $updateDownloader = $updateSession.CreateUpdateDownloader()
     # https://docs.microsoft.com/en-us/windows/desktop/api/winnt/ns-winnt-_osversioninfoexa#remarks
-    # In Server 2008 r2 highest prioirty is 3
-    if ($windowsOsVersion.Major -ge 6 -and $windowsOsVersion.Minor -gt 1) {
+    if (($windowsOsVersion.Major -eq 6 -and $windowsOsVersion.Minor -gt 1) -or ($windowsOsVersion.Major -gt 6)) {
         $updateDownloader.Priority = 4 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh), 4 (dpExtraHigh).
     } else {
+        # For versions lower then 6.2 highest prioirty is 3
         $updateDownloader.Priority = 3 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh).
     }
     $updateDownloader.Updates = $updatesToDownload
