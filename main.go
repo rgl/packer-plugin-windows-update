@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/hashicorp/packer/packer/plugin"
 
-	"./update"
+	"github.com/rgl/packer-provisioner-windows-update/update"
 )
 
 func main() {
