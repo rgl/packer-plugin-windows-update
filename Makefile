@@ -1,13 +1,13 @@
 build: packer-provisioner-windows-update packer-provisioner-windows-update.exe
 
-packer-provisioner-windows-update: *.go update/* update/bindata.go
+packer-provisioner-windows-update: *.go update/* update/assets_vfsdata.go
 	GOOS=linux GOARCH=amd64 go build -v -o $@
 
-packer-provisioner-windows-update.exe: *.go update/* update/bindata.go
+packer-provisioner-windows-update.exe: *.go update/* update/assets_vfsdata.go
 	GOOS=windows GOARCH=amd64 go build -v -o $@
 
-update/bindata.go: update/*.ps1
-	go-bindata -nocompress -ignore '\.go$$' -o $@ -prefix update -pkg update update
+update/assets_vfsdata.go: update/assets_generate.go update/*.ps1
+	cd update && go run assets_generate.go
 
 dist: package-chocolatey
 
@@ -27,6 +27,6 @@ package-chocolatey: package
 	choco pack tmp-package-chocolatey/*.nuspec
 
 clean:
-	rm -rf packer-provisioner-windows-update* tmp* update/bindata.go
+	rm -rf packer-provisioner-windows-update* tmp* update/assets_vfsdata.go
 
 .PHONY: build dist package package-chocolatey clean

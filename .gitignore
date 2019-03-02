@@ -3,5 +3,5 @@ packer-provisioner-windows-update.exe
 packer-provisioner-windows-update-*.tgz
 packer-provisioner-windows-update-*.zip
 tmp*
-bindata.go
+assets_vfsdata.go
 .idea/

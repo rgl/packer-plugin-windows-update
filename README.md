@@ -6,7 +6,7 @@
 
 This is a Packer plugin for installing Windows updates (akin to [rgl/vagrant-windows-update](https://github.com/rgl/vagrant-windows-update)).
 
-**NB** This was only tested with Packer 1.2.5 and Windows Server 2016.
+**NB** This was only tested with Packer 1.3.4 and Windows Server 2019.
 
 # Usage
 
@@ -81,13 +81,6 @@ The general filter syntax is:
 Inside an expression, the Windows Update [IUpdate interface](https://msdn.microsoft.com/en-us/library/windows/desktop/aa386099(v=vs.85).aspx) can be referenced by the `$_` variable.
 
 # Development
-
-Install the dependencies:
-
-```bash
-go get -u github.com/hashicorp/packer/packer/plugin
-go get -u github.com/jteeuwen/go-bindata/...
-```
 
 Build:
 
