@@ -177,10 +177,8 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
 
     $update.AcceptEula() | Out-Null
 
-    if (!$update.IsDownloaded) {
-        $updatesToDownloadSize += $update.MaxDownloadSize
-        $updatesToDownload.Add($update) | Out-Null
-    }
+    $updatesToDownloadSize += $update.MaxDownloadSize
+    $updatesToDownload.Add($update) | Out-Null
 
     $updatesToInstall.Add($update) | Out-Null
     if ($updatesToInstall.Count -ge $UpdateLimit) {
