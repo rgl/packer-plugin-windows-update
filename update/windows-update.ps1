@@ -101,6 +101,22 @@ function Wait-Condition {
     }
 }
 
+$operationResultCodes = @{
+    0 = "NotStarted";
+    1 = "InProgress";
+    2 = "Succeeded";
+    3 = "SucceededWithErrors";
+    4 = "Failed";
+    5 = "Aborted"
+}
+
+function LookupOperationResultCode($code) {
+    if ($operationResultCodes.ContainsKey($code)) {
+        return $operationResultCodes[$code]
+    } 
+    return "Unknown Code $code"
+}
+
 function ExitWhenRebootRequired($rebootRequired = $false) {
     # check for pending Windows Updates.
     if (!$rebootRequired) {
@@ -147,15 +163,27 @@ function Test-IncludeUpdate($filters, $update) {
 }
 
 $windowsOsVersion = [System.Environment]::OSVersion.Version
-$updateSession = New-Object -ComObject 'Microsoft.Update.Session'
-$updateSession.ClientApplicationID = 'packer-windows-update'
 
 Write-Output 'Searching for Windows updates...'
 $updatesToDownloadSize = 0
 $updatesToDownload = New-Object -ComObject 'Microsoft.Update.UpdateColl'
 $updatesToInstall = New-Object -ComObject 'Microsoft.Update.UpdateColl'
-$updateSearcher = $updateSession.CreateUpdateSearcher()
-$searchResult = $updateSearcher.Search($SearchCriteria)
+while ($true) {
+    try {
+        $updateSession = New-Object -ComObject 'Microsoft.Update.Session'
+        $updateSession.ClientApplicationID = 'packer-windows-update'
+        $updateSearcher = $updateSession.CreateUpdateSearcher()
+        $searchResult = $updateSearcher.Search($SearchCriteria)
+        if ($searchResult.ResultCode -eq 2) {
+            break
+        }
+        $searchStatus = LookupOperationResultCode($searchResult.ResultCode)
+    } catch {        
+        $searchStatus = $_.ToString()
+    }    
+    Write-Output "Search for Windows updates failed with '$searchStatus'. Retrying..."
+    Start-Sleep -Seconds 5
+}
 $rebootRequired = $false
 for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $update = $searchResult.Updates.Item($i)
@@ -206,15 +234,7 @@ if ($updatesToDownload.Count) {
         if ($downloadResult.ResultCode -eq 2) {
             break
         }
-        $downloadStatus = switch ($downloadResult.ResultCode) {
-            0 {'NotStarted'}
-            1 {'InProgress'}
-            2 {'Downloaded'}
-            3 {'DownloadedWithErrors'}
-            4 {'Failed'}
-            5 {'Aborted'}
-            default {$downloadResult.ResultCode}
-        }
+        $downloadStatus = LookupOperationResultCode($downloadResult.ResultCode) 
         Write-Output "Download Windows updates failed with $downloadStatus. Retrying..."
         Start-Sleep -Seconds 5
     }
