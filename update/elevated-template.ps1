@@ -61,17 +61,27 @@ $t.Run($null) | Out-Null
 $timeout = 10
 $sec = 0
 while ((!($t.state -eq 4)) -and ($sec -lt $timeout)) {
-    Start-Sleep -s 1
+    Start-Sleep -Seconds 1
     $sec++
 }
+$reportProgressInterval = New-TimeSpan -Minutes 1
+$startDate = Get-Date
 $line = 0
 do {
-    Start-Sleep -m 100
+    Start-Sleep -Seconds 5
     if (Test-Path $log) {
-        Get-Content $log | select -skip $line | ForEach {
+        Get-Content $log | Select-Object -skip $line | ForEach-Object {
             ++$line
             Write-Output $_
         }
+    }
+    $currentDate = Get-Date
+    if ($currentDate.Subtract($startDate) -ge $reportProgressInterval) {
+        $startDate = $currentDate
+        $cpuUsage = (Get-CimInstance CIM_Processor | Measure-Object -Property LoadPercentage -Average).Average / 100
+        $os = Get-CimInstance Win32_OperatingSystem
+        $memoryUsage = 1 - $os.FreePhysicalMemory / $os.TotalVisibleMemorySize
+        Write-Output ("Waiting for operation to complete (system performance: {0:P0} cpu; {1:P0} memory)..." -f $cpuUsage,$memoryUsage)
     }
 } while (!($t.state -eq 3))
 $result = $t.LastTaskResult
