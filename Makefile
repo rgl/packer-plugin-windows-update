@@ -1,7 +1,10 @@
-build: packer-provisioner-windows-update packer-provisioner-windows-update.exe
+build: packer-provisioner-windows-update packer-provisioner-windows-update.mac packer-provisioner-windows-update.exe
 
 packer-provisioner-windows-update: *.go update/* update/assets_vfsdata.go
 	GOOS=linux GOARCH=amd64 go build -v -o $@
+
+packer-provisioner-windows-update.mac: *.go update/* update/assets_vfsdata.go
+	GOOS=darwin GOARCH=amd64 go build -v -o $@
 
 packer-provisioner-windows-update.exe: *.go update/* update/assets_vfsdata.go
 	GOOS=windows GOARCH=amd64 go build -v -o $@
