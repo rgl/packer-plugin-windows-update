@@ -16,6 +16,7 @@ dist: package-chocolatey
 
 package: build
 	tar -czf packer-provisioner-windows-update-linux.tgz packer-provisioner-windows-update
+	tar -czf packer-provisioner-windows-update-mac.tgz packer-provisioner-windows-update.mac
 	zip packer-provisioner-windows-update-windows.zip packer-provisioner-windows-update.exe
 
 package-chocolatey: package
