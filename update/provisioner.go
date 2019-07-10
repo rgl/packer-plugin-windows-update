@@ -4,16 +4,16 @@ package update
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
-	"sync"
 	"time"
 	"unicode/utf16"
 
 	"github.com/hashicorp/packer/common"
+	"github.com/hashicorp/packer/common/retry"
 	"github.com/hashicorp/packer/common/uuid"
 	"github.com/hashicorp/packer/helper/config"
 	"github.com/hashicorp/packer/packer"
@@ -27,9 +27,9 @@ const (
 	pendingRebootElevatedPath    = "C:/Windows/Temp/packer-windows-update-pending-reboot-elevated.ps1"
 	pendingRebootElevatedCommand = "PowerShell -ExecutionPolicy Bypass -OutputFormat Text -File C:/Windows/Temp/packer-windows-update-pending-reboot-elevated.ps1"
 	restartCommand               = "shutdown.exe -f -r -t 0 -c \"packer restart\""
-	retryableSleep               = 5 * time.Second
-	tryCheckReboot               = "shutdown.exe -f -r -t 60"
-	abortReboot                  = "shutdown.exe -a"
+	testRestartCommand           = "shutdown.exe -f -r -t 60 -c \"packer restart test\""
+	abortTestRestartCommand      = "shutdown.exe -a"
+	retryableDelay               = 5 * time.Second
 )
 
 type Config struct {
@@ -59,11 +59,7 @@ type Config struct {
 }
 
 type Provisioner struct {
-	config     Config
-	comm       packer.Communicator
-	ui         packer.Ui
-	cancel     chan struct{}
-	cancelLock sync.Mutex
+	config Config
 }
 
 func (p *Provisioner) Prepare(raws ...interface{}) error {
@@ -102,11 +98,8 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	return errs
 }
 
-func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
-	p.comm = comm
-	p.ui = ui
-
-	p.ui.Say("Uploading the Windows update elevated script...")
+func (p *Provisioner) Provision(ctx context.Context, ui packer.Ui, comm packer.Communicator) error {
+	ui.Say("Uploading the Windows update elevated script...")
 	var buffer bytes.Buffer
 	err := elevatedTemplate.Execute(&buffer, elevatedOptions{
 		Username:        p.config.Username,
@@ -119,7 +112,7 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 		fmt.Printf("Error creating elevated template: %s", err)
 		return err
 	}
-	err = p.comm.Upload(
+	err = comm.Upload(
 		elevatedPath,
 		bytes.NewReader(buffer.Bytes()),
 		nil)
@@ -127,7 +120,7 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 		return err
 	}
 
-	p.ui.Say("Uploading the Windows update check for reboot required elevated script...")
+	ui.Say("Uploading the Windows update check for reboot required elevated script...")
 	buffer.Reset()
 	err = elevatedTemplate.Execute(&buffer, elevatedOptions{
 		Username:        p.config.Username,
@@ -140,7 +133,7 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 		fmt.Printf("Error creating elevated template: %s", err)
 		return err
 	}
-	err = p.comm.Upload(
+	err = comm.Upload(
 		pendingRebootElevatedPath,
 		bytes.NewReader(buffer.Bytes()),
 		nil)
@@ -148,8 +141,8 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 		return err
 	}
 
-	p.ui.Say("Uploading the Windows update script...")
-	err = p.comm.Upload(
+	ui.Say("Uploading the Windows update script...")
+	err = comm.Upload(
 		windowsUpdatePath,
 		bytes.NewReader(MustAsset("windows-update.ps1")),
 		nil)
@@ -158,7 +151,7 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 	}
 
 	for {
-		restartPending, err := p.update()
+		restartPending, err := p.update(ctx, ui, comm)
 		if err != nil {
 			return err
 		}
@@ -167,186 +160,91 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 			return nil
 		}
 
-		err = p.restart()
+		err = p.restart(ctx, ui, comm)
 		if err != nil {
 			return err
 		}
 	}
 }
 
-func (p *Provisioner) update() (bool, error) {
-	p.ui.Say("Running Windows update...")
-
-	var cmd *packer.RemoteCmd
-	err := p.retryable(func() error {
-		cmd = &packer.RemoteCmd{Command: elevatedCommand}
-		return cmd.StartWithUi(p.comm, p.ui)
-	})
-
+func (p *Provisioner) update(ctx context.Context, ui packer.Ui, comm packer.Communicator) (bool, error) {
+	ui.Say("Running Windows update...")
+	cmd := &packer.RemoteCmd{Command: elevatedCommand}
+	err := cmd.RunWithUi(ctx, comm, ui)
 	if err != nil {
 		return false, err
 	}
-
-	switch cmd.ExitStatus {
+	var exitStatus = cmd.ExitStatus()
+	switch exitStatus {
 	case 0:
 		return false, nil
 	case 101:
 		return true, nil
 	default:
-		return false, fmt.Errorf("Windows update script exited with non-zero exit status: %d", cmd.ExitStatus)
+		return false, fmt.Errorf("Windows update script exited with non-zero exit status: %d", exitStatus)
 	}
 }
 
-func (p *Provisioner) restart() error {
-	p.cancelLock.Lock()
-	p.cancel = make(chan struct{})
-	p.cancelLock.Unlock()
-
-	var cmd *packer.RemoteCmd
-	err := p.retryable(func() error {
-		cmd = &packer.RemoteCmd{Command: restartCommand}
-		return cmd.StartWithUi(p.comm, p.ui)
+func (p *Provisioner) restart(ctx context.Context, ui packer.Ui, comm packer.Communicator) error {
+	ui.Say("Restarting the machine...")
+	err := p.retryable(ctx, func(ctx context.Context) error {
+		cmd := &packer.RemoteCmd{Command: restartCommand}
+		err := cmd.RunWithUi(ctx, comm, ui)
+		if err != nil {
+			return err
+		}
+		exitStatus := cmd.ExitStatus()
+		if exitStatus != 0 {
+			return fmt.Errorf("Failed to restart the machine with exit status: %d", exitStatus)
+		}
+		return nil
 	})
-
 	if err != nil {
 		return err
 	}
 
-	if cmd.ExitStatus != 0 {
-		return fmt.Errorf("Restart script exited with non-zero exit status: %d", cmd.ExitStatus)
-	}
-
-	return waitForRestart(p, p.comm)
-}
-
-func waitForRestart(p *Provisioner, comm packer.Communicator) error {
-	ui := p.ui
-	ui.Say("Waiting for machine to restart...")
-	waitDone := make(chan bool, 1)
-	timeout := time.After(p.config.RestartTimeout)
-	var err error
-
-	p.comm = comm
-	var cmd *packer.RemoteCmd
-	// Stolen from Vagrant reboot checker
-	for {
-		log.Printf("Check if machine is rebooting...")
-		cmd = &packer.RemoteCmd{Command: tryCheckReboot}
-		err = cmd.StartWithUi(comm, ui)
+	ui.Say("Waiting for machine to become available...")
+	err = p.retryable(ctx, func(ctx context.Context) error {
+		// wait for the machine to reboot.
+		cmd := &packer.RemoteCmd{Command: testRestartCommand}
+		err := cmd.RunWithUi(ctx, comm, ui)
 		if err != nil {
-			// Couldn't execute, we assume machine is rebooting already
-			break
-		}
-		if cmd.ExitStatus == 1115 || cmd.ExitStatus == 1190 {
-			// Reboot already in progress but not completed
-			log.Printf("Reboot already in progress, waiting...")
-			time.Sleep(10 * time.Second)
-		}
-		if cmd.ExitStatus == 0 {
-			// Cancel reboot we created to test if machine was already rebooting
-			cmd = &packer.RemoteCmd{Command: abortReboot}
-			cmd.StartWithUi(comm, ui)
-			break
-		}
-	}
-
-	go func() {
-		log.Printf("Waiting for machine to become available...")
-		err = waitForCommunicator(p)
-		waitDone <- true
-	}()
-
-	log.Printf("Waiting for machine to reboot with timeout: %s", p.config.RestartTimeout)
-
-WaitLoop:
-	for {
-		// Wait for either WinRM to become available, a timeout to occur,
-		// or an interrupt to come through.
-		select {
-		case <-waitDone:
-			if err != nil {
-				ui.Error(fmt.Sprintf("Error waiting for WinRM: %s", err))
-				return err
-			}
-			ui.Say("Machine successfully restarted, moving on")
-			close(p.cancel)
-			break WaitLoop
-		case <-timeout:
-			err := fmt.Errorf("Timeout waiting for WinRM")
-			ui.Error(err.Error())
-			close(p.cancel)
 			return err
-		case <-p.cancel:
-			return fmt.Errorf("Interrupt detected, quitting waiting for machine to restart")
 		}
-	}
-
-	return nil
-}
-
-func waitForCommunicator(p *Provisioner) error {
-	for {
-		select {
-		case <-p.cancel:
-			log.Println("Communicator wait canceled, exiting loop")
-			return fmt.Errorf("Communicator wait canceled")
-		case <-time.After(retryableSleep):
+		exitStatus := cmd.ExitStatus()
+		if exitStatus != 0 {
+			return fmt.Errorf("Machine not yet available (exit status %d)", exitStatus)
 		}
-
-		cmd := &packer.RemoteCmd{Command: pendingRebootElevatedCommand}
-		log.Printf("Executing remote command: %s", cmd.Command)
-
-		err := cmd.StartWithUi(p.comm, p.ui)
+		cmd = &packer.RemoteCmd{Command: abortTestRestartCommand}
+		err = cmd.RunWithUi(ctx, comm, ui)
 		if err != nil {
-			log.Printf("Communication connection err: %s", err)
-			continue
-		}
-		if cmd.ExitStatus != 0 {
-			log.Printf("Machine not yet available (exit status %d)", cmd.ExitStatus)
-			continue
+			return err
 		}
 
-		log.Printf("Connected to machine")
-		break
-	}
+		// wait for pending tasks to finish.
+		cmd = &packer.RemoteCmd{Command: pendingRebootElevatedCommand}
+		err = cmd.RunWithUi(ctx, comm, ui)
+		if err != nil {
+			return err
+		}
+		exitStatus = cmd.ExitStatus()
+		if exitStatus != 0 {
+			return fmt.Errorf("Machine not yet available (exit status %d)", exitStatus)
+		}
 
-	return nil
-}
-
-func (p *Provisioner) Cancel() {
-	log.Printf("Received interrupt Cancel()")
-
-	p.cancelLock.Lock()
-	defer p.cancelLock.Unlock()
-	if p.cancel != nil {
-		close(p.cancel)
-	}
+		return nil
+	})
+	return err
 }
 
 // retryable will retry the given function over and over until a
-// non-error is returned.
-func (p *Provisioner) retryable(f func() error) error {
-	startTimeout := time.After(p.config.RestartTimeout)
-	for {
-		err := f()
-		if err == nil {
-			return nil
-		}
-
-		// Create an error and log it
-		err = fmt.Errorf("Retryable error: %s", err)
-		log.Print(err.Error())
-
-		// Check if we timed out, otherwise we retry. It is safe to
-		// retry since the only error case above is if the command
-		// failed to START.
-		select {
-		case <-startTimeout:
-			return err
-		default:
-			time.Sleep(retryableSleep)
-		}
-	}
+// non-error is returned, RestartTimeout expires, or ctx is
+// cancelled.
+func (p *Provisioner) retryable(ctx context.Context, f func(ctx context.Context) error) error {
+	return retry.Config{
+		RetryDelay:   func() time.Duration { return retryableDelay },
+		StartTimeout: p.config.RestartTimeout,
+	}.Run(ctx, f)
 }
 
 func (p *Provisioner) windowsUpdateCommand() string {
