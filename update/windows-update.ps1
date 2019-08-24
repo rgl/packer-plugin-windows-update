@@ -232,6 +232,11 @@ if ($updatesToDownload.Count) {
         if ($downloadResult.ResultCode -eq 2) {
             break
         }
+        if ($downloadResult.ResultCode -eq 3) {
+            Write-Output "Download Windows updates succeeded with errors. Will retry after installing updates."
+            $rebootRequired = $true
+            break
+        }
         $downloadStatus = LookupOperationResultCode($downloadResult.ResultCode) 
         Write-Output "Download Windows updates failed with $downloadStatus. Retrying..."
         Start-Sleep -Seconds 5
