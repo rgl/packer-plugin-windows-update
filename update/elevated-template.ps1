@@ -64,6 +64,19 @@ while ((!($t.state -eq 4)) -and ($sec -lt $timeout)) {
     Start-Sleep -Seconds 1
     $sec++
 }
+# Windows PowerShell 2 on Windows 7 does not have Get-CimInstance.
+# PowerShell 6 does not have Get-WmiObject.
+if (!(Get-Command Get-CimInstance -ErrorAction:SilentlyContinue)) {
+    function Get-CimInstance {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory = $True, Position = 0)]
+            [string]
+            $ClassName
+        )
+        Get-WmiObject -Class $ClassName
+    }
+}
 $reportProgressInterval = New-TimeSpan -Minutes 1
 $startDate = Get-Date
 $line = 0
