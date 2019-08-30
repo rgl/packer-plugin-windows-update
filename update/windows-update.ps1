@@ -233,7 +233,7 @@ if ($updatesToDownload.Count) {
             break
         }
         if ($downloadResult.ResultCode -eq 3) {
-            Write-Output "Download Windows updates succeeded with errors. Will retry after installing updates."
+            Write-Output "Download Windows updates succeeded with errors. Will retry after the next reboot."
             $rebootRequired = $true
             break
         }
@@ -250,5 +250,6 @@ if ($updatesToInstall.Count) {
     $installResult = $updateInstaller.Install()
     ExitWhenRebootRequired ($installResult.RebootRequired -or $rebootRequired)
 } else {
+    ExitWhenRebootRequired $rebootRequired
     Write-Output 'No Windows updates found'
 }
