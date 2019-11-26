@@ -189,16 +189,16 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $update = $searchResult.Updates.Item($i)
     $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
     $updateSize = ($update.MaxDownloadSize/1024/1024).ToString('0.##')
-    $updateSummary = "Windows update ($updateDate; $updateSize MB): $($update.Title)"
-
-    if ($update.InstallationBehavior.CanRequestUserInput) {
-        Write-Output "Skipped (CanRequestUserInput) $updateSummary"
-        continue
-    }
+    $updateTitle = $update.Title
+    $updateSummary = "Windows update ($updateDate; $updateSize MB): $updateTitle"
 
     if (!(Test-IncludeUpdate $updateFilters $update)) {
         Write-Output "Skipped (filter) $updateSummary"
         continue
+    }
+
+    if ($update.InstallationBehavior.CanRequestUserInput) {
+        Write-Output "Warning The update '$updateTitle' has the CanRequestUserInput flag set (if the install hangs, you might need to exclude it with the filter 'exclude:`$_.InstallationBehavior.CanRequestUserInput' or 'exclude:`$_.Title -like '*$updateTitle*'')"
     }
 
     Write-Output "Found $updateSummary"
