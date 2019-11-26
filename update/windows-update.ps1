@@ -191,11 +191,6 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $updateSize = ($update.MaxDownloadSize/1024/1024).ToString('0.##')
     $updateSummary = "Windows update ($updateDate; $updateSize MB): $($update.Title)"
 
-    if ($update.InstallationBehavior.CanRequestUserInput) {
-        Write-Output "Skipped (CanRequestUserInput) $updateSummary"
-        continue
-    }
-
     if (!(Test-IncludeUpdate $updateFilters $update)) {
         Write-Output "Skipped (filter) $updateSummary"
         continue
