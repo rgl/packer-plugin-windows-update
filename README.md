@@ -25,6 +25,8 @@ Use the provisioner from your packer template file, e.g. like in [rgl/windows-20
 }
 ```
 
+Note, the plugin automatically restarts the machine after Windows Updates are applied.  The reboots occur similar to the windows-restart provisioner built into packer where packer is aware that a shutdown is in progress.
+
 ## Search Criteria, Filters and Update Limit
 
 You can select which Windows Updates are installed by defining the search criteria, a set of filters, and how many updates are installed at a time.
