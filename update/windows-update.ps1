@@ -43,7 +43,10 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 trap {
     Write-Output "ERROR: $_"
-    Write-Output (($_.ScriptStackTrace -split '\r?\n') -replace '^(.*)$','ERROR: $1')
+    # ScriptStackTrace property is missing on Win7
+    if (Get-Member -inputobject $_ -name "ScriptStackTrace" -Membertype Properties) {
+        Write-Output (($_.ScriptStackTrace -split '\r?\n') -replace '^(.*)$','ERROR: $1')
+    }
     Write-Output (($_.Exception.ToString() -split '\r?\n') -replace '^(.*)$','ERROR EXCEPTION: $1')
     ExitWithCode 1
 }
@@ -185,6 +188,7 @@ while ($true) {
     Start-Sleep -Seconds 5
 }
 $rebootRequired = $false
+
 for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $update = $searchResult.Updates.Item($i)
     $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
@@ -208,13 +212,16 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $updatesToDownloadSize += $update.MaxDownloadSize
     $updatesToDownload.Add($update) | Out-Null
 
-    $updatesToInstall.Add($update) | Out-Null
-    if ($updatesToInstall.Count -ge $UpdateLimit) {
+    if ($updatesToDownload.Count -ge $UpdateLimit) {
         $rebootRequired = $true
         break
     }
 }
 
+# On Win7 script throws exception. We have to add a small pause to fix it. 
+# Please see https://github.com/chocolatey/boxstarter/issues/267
+Write-Output "30 second pause before download"
+Start-Sleep -Seconds 30
 if ($updatesToDownload.Count) {
     $updateSize = ($updatesToDownloadSize/1024/1024).ToString('0.##')
     Write-Output "Downloading Windows updates ($($updatesToDownload.Count) updates; $updateSize MB)..."
@@ -242,12 +249,22 @@ if ($updatesToDownload.Count) {
         Start-Sleep -Seconds 5
     }
 }
+# Filter out failed downloads
+foreach ($update in $updatesToDownload) {
+    if ($update.IsDownloaded) {
+        $updatesToInstall.Add($update) | Out-Null
+    } else {
+        Write-Output "Update $($update.Title) was not downloaded"
+    }
+}
+Write-Output "Downloaded $($updatesToInstall.Count) updates"
 
 if ($updatesToInstall.Count) {
     Write-Output 'Installing Windows updates...'
     $updateInstaller = $updateSession.CreateUpdateInstaller()
     $updateInstaller.Updates = $updatesToInstall
     $installResult = $updateInstaller.Install()
+    Write-Output "Install Result: $(LookupOperationResultCode($installResult.ResultCode))"
     ExitWhenRebootRequired ($installResult.RebootRequired -or $rebootRequired)
 } else {
     ExitWhenRebootRequired $rebootRequired
