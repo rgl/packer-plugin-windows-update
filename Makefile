@@ -1,13 +1,18 @@
 build: packer-provisioner-windows-update packer-provisioner-windows-update.exe
 
-packer-provisioner-windows-update: *.go update/* update/assets_vfsdata.go
+packer-provisioner-windows-update: *.go update/* update/assets_vfsdata.go update/provisioner.hcl2spec.go
 	GOOS=linux GOARCH=amd64 go build -v -o $@
 
-packer-provisioner-windows-update.exe: *.go update/* update/assets_vfsdata.go
+packer-provisioner-windows-update.exe: *.go update/* update/assets_vfsdata.go update/provisioner.hcl2spec.go
 	GOOS=windows GOARCH=amd64 go build -v -o $@
 
 update/assets_vfsdata.go: update/assets_generate.go update/*.ps1
 	cd update && go run assets_generate.go
+
+# see https://www.packer.io/guides/hcl/component-object-spec/
+update/provisioner.hcl2spec.go: update/provisioner.go
+	go install github.com/hashicorp/packer/cmd/mapstructure-to-hcl2
+	go generate ./...
 
 dist: package-chocolatey
 

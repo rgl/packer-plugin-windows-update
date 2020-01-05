@@ -1,3 +1,5 @@
+//go:generate mapstructure-to-hcl2 -type Config
+
 // NB this code was based on https://github.com/hashicorp/packer/blob/81522dced0b25084a824e79efda02483b12dc7cd/provisioner/windows-restart/provisioner.go
 
 package update
@@ -12,6 +14,7 @@ import (
 	"time"
 	"unicode/utf16"
 
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/packer/common"
 	"github.com/hashicorp/packer/common/retry"
 	"github.com/hashicorp/packer/common/uuid"
@@ -62,6 +65,10 @@ type Provisioner struct {
 	config Config
 }
 
+func (b *Provisioner) ConfigSpec() hcldec.ObjectSpec {
+	return b.config.FlatMapstructure().HCL2Spec()
+}
+
 func (p *Provisioner) Prepare(raws ...interface{}) error {
 	err := config.Decode(&p.config, &config.DecodeOpts{
 		Interpolate:        true,
@@ -98,7 +105,7 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	return errs
 }
 
-func (p *Provisioner) Provision(ctx context.Context, ui packer.Ui, comm packer.Communicator) error {
+func (p *Provisioner) Provision(ctx context.Context, ui packer.Ui, comm packer.Communicator, _ map[string]interface{}) error {
 	ui.Say("Uploading the Windows update elevated script...")
 	var buffer bytes.Buffer
 	err := elevatedTemplate.Execute(&buffer, elevatedOptions{
