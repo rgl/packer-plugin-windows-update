@@ -1,24 +1,44 @@
-build: packer-provisioner-windows-update packer-provisioner-windows-update.exe
+GOARCH := amd64
+SOURCE_FILES := *.go update/* update/assets_vfsdata.go update/provisioner.hcl2spec.go
 
-packer-provisioner-windows-update: *.go update/* update/assets_vfsdata.go update/provisioner.hcl2spec.go
-	GOOS=linux GOARCH=amd64 go build -v -o $@
+ ifeq "${VERBOSE}" ""
+ 	Q=@
+ else
+ 	Q=
+ endif
+ 
+all: build
 
-packer-provisioner-windows-update.exe: *.go update/* update/assets_vfsdata.go update/provisioner.hcl2spec.go
-	GOOS=windows GOARCH=amd64 go build -v -o $@
+build: build/linux/packer-provisioner-windows-update \
+	build/windows/packer-provisioner-windows-update.exe \
+	build/darwin/packer-provisioner-windows-update
+
+#
+#	Generic build target
+#
+build/%: $(SOURCE_FILES)
+	$(eval GOOS := $(word 2, $(subst /, ,$@)))
+	@echo "BUILD $@"
+	$(Q)mkdir -p $(dir $@)
+	$(Q)GOOS=$(GOOS) GOARCH=$(GOARCH) go build -v -o $@
 
 update/assets_vfsdata.go: update/assets_generate.go update/*.ps1
-	cd update && go run assets_generate.go
+	@echo "UPDATE $@"
+	$(Q)(cd update && go run assets_generate.go)
 
+#
 # see https://www.packer.io/guides/hcl/component-object-spec/
+#
 update/provisioner.hcl2spec.go: update/provisioner.go
-	go install github.com/hashicorp/packer/cmd/mapstructure-to-hcl2
-	go generate ./...
+	$(Q)go install github.com/hashicorp/packer/cmd/mapstructure-to-hcl2
+	$(Q)go generate ./...
 
 dist: package-chocolatey
 
 package: build
-	tar -czf packer-provisioner-windows-update-linux.tgz packer-provisioner-windows-update
-	zip packer-provisioner-windows-update-windows.zip packer-provisioner-windows-update.exe
+	(cd build/linux  && tar -czf ../../packer-provisioner-windows-update_linux-$(GOARCH).tgz packer-provisioner-windows-update)
+	(cd build/darwin && tar -czf ../../packer-provisioner-windows-update_darwin-$(GOARCH).tgz packer-provisioner-windows-update)
+	(cd build/windows && zip ../../packer-provisioner-windows-update_windows-$(GOARCH).zip packer-provisioner-windows-update.exe)
 
 package-chocolatey: package
 	rm -rf tmp-package-chocolatey
@@ -32,6 +52,6 @@ package-chocolatey: package
 	choco pack tmp-package-chocolatey/*.nuspec
 
 clean:
-	rm -rf packer-provisioner-windows-update* tmp* update/assets_vfsdata.go
+	rm -rf build/ packer-provisioner-windows-update* tmp* update/assets_vfsdata.go
 
 .PHONY: build dist package package-chocolatey clean
