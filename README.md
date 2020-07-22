@@ -1,6 +1,6 @@
 # Packer Windows Update Provisioner
 
-[![Build status](https://ci.appveyor.com/api/projects/status/1bmqt9ywh82vhojt?svg=true)](https://ci.appveyor.com/project/rgl/packer-provisioner-windows-update)
+[![Build status](https://github.com/rgl/packer-provisioner-windows-update/workflows/Build/badge.svg)](https://github.com/rgl/packer-provisioner-windows-update/actions?query=workflow%3ABuild)
 [![Latest version released](https://img.shields.io/chocolatey/v/packer-provisioner-windows-update.svg)](https://chocolatey.org/packages/packer-provisioner-windows-update)
 [![Package downloads count](https://img.shields.io/chocolatey/dt/packer-provisioner-windows-update.svg)](https://chocolatey.org/packages/packer-provisioner-windows-update)
 

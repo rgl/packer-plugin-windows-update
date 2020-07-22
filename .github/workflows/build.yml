@@ -1,0 +1,23 @@
+name: Build
+on: [push]
+jobs:
+  build:
+    name: Build
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.14.4'
+      - name: Set up msys2
+        uses: msys2/setup-msys2@v2
+        with:
+          install: make tar zip
+          path-type: inherit
+      - name: Build
+        run: msys2 -c 'make dist'
+      - name: Archive
+        uses: actions/upload-artifact@v2
+        with:
+          name: artifacts
+          path: packer-provisioner-windows-update*
