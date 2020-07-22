@@ -1,3 +1,4 @@
+GO_HOST_OS := $(shell go env GOHOSTOS)
 SOURCE_FILES := *.go update/* update/assets_vfsdata.go update/provisioner.hcl2spec.go
 
 all: build
@@ -37,6 +38,10 @@ package-chocolatey: package
 		tmp-package-chocolatey/*.nuspec \
 		tmp-package-chocolatey/tools/*.ps1
 	choco pack tmp-package-chocolatey/*.nuspec
+
+install: build/$(GO_HOST_OS)/packer-provisioner-windows-update
+	mkdir -p $(HOME)/.packer.d/plugins
+	cp -f $< $(HOME)/.packer.d/plugins/$(notdir $<)
 
 clean:
 	rm -rf build packer-provisioner-windows-update* tmp* update/assets_vfsdata.go

@@ -6,7 +6,7 @@
 
 This is a Packer plugin for installing Windows updates (akin to [rgl/vagrant-windows-update](https://github.com/rgl/vagrant-windows-update)).
 
-**NB** This was only tested with Packer 1.5.1 and Windows Server 2019.
+**NB** This was only tested with Packer 1.5.1 on Windows Server 2019, macOS Catalina and Ubuntu 20.04.
 
 # Usage
 
@@ -99,6 +99,12 @@ following snippet to your `~/.packerconfig` (or `%APPDATA%/packer.config`):
         "windows-update": "/home/rgl/Projects/packer-provisioner-windows-update/packer-provisioner-windows-update"
     }
 }
+```
+
+Or install into `$HOME/.packer.d/plugins` with:
+
+```
+make install
 ```
 
 If you are having problems running `packer` set the `PACKER_LOG=1` environment
