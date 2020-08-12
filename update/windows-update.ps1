@@ -247,8 +247,11 @@ if ($updatesToInstall.Count) {
     Write-Output 'Installing Windows updates...'
     $updateInstaller = $updateSession.CreateUpdateInstaller()
     $updateInstaller.Updates = $updatesToInstall
+
+    $installRebootRequired = $false
     try {
         $installResult = $updateInstaller.Install()
+        $installRebootRequired = $installResult.RebootRequired
     } catch {
         Write-Warning "Windows update installation failed with error:"
         Write-Warning $_.Exception.ToString()
@@ -257,7 +260,7 @@ if ($updatesToInstall.Count) {
         # restart the machine and try again
         $rebootRequired = $true
     }
-    ExitWhenRebootRequired ($installResult.RebootRequired -or $rebootRequired)
+    ExitWhenRebootRequired ($installRebootRequired -or $rebootRequired)
 } else {
     ExitWhenRebootRequired $rebootRequired
     Write-Output 'No Windows updates found'
