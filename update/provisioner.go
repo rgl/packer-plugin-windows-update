@@ -193,55 +193,78 @@ func (p *Provisioner) update(ctx context.Context, ui packer.Ui, comm packer.Comm
 }
 
 func (p *Provisioner) restart(ctx context.Context, ui packer.Ui, comm packer.Communicator) error {
-	ui.Say("Restarting the machine...")
-	err := p.retryable(ctx, func(ctx context.Context) error {
-		cmd := &packer.RemoteCmd{Command: restartCommand}
-		err := cmd.RunWithUi(ctx, comm, ui)
+	restartPending := true
+	for restartPending {
+		ui.Say("Restarting the machine...")
+		err := p.retryable(ctx, func(ctx context.Context) error {
+			cmd := &packer.RemoteCmd{Command: restartCommand}
+			err := cmd.RunWithUi(ctx, comm, ui)
+			if err != nil {
+				return err
+			}
+			exitStatus := cmd.ExitStatus()
+			if exitStatus != 0 {
+				return fmt.Errorf("Failed to restart the machine with exit status: %d", exitStatus)
+			}
+			return err
+		})
 		if err != nil {
 			return err
 		}
-		exitStatus := cmd.ExitStatus()
-		if exitStatus != 0 {
-			return fmt.Errorf("Failed to restart the machine with exit status: %d", exitStatus)
+
+		ui.Say("Waiting for machine to become available...")
+		err = p.retryable(ctx, func(ctx context.Context) error {
+			// wait for the machine to reboot.
+			cmd := &packer.RemoteCmd{Command: testRestartCommand}
+			err := cmd.RunWithUi(ctx, comm, ui)
+			if err != nil {
+				return err
+			}
+			exitStatus := cmd.ExitStatus()
+			if exitStatus != 0 {
+				return fmt.Errorf("Machine not yet available (exit status %d)", exitStatus)
+			}
+			cmd = &packer.RemoteCmd{Command: abortTestRestartCommand}
+			err = cmd.RunWithUi(ctx, comm, ui)
+
+			return err
+		})
+		if err != nil {
+			return err
 		}
-		return nil
-	})
-	if err != nil {
-		return err
+
+		ui.Say("Checking for pending restart...")
+		err = p.retryable(ctx, func(ctx context.Context) error {
+			cmd := &packer.RemoteCmd{Command: pendingRebootElevatedCommand}
+			err = cmd.RunWithUi(ctx, comm, ui)
+			if err != nil {
+				return err
+			}
+
+			exitStatus := cmd.ExitStatus()
+			switch {
+			case exitStatus == 0:
+				restartPending = false
+			case exitStatus == 101:
+				restartPending = true
+			default:
+				return fmt.Errorf("Machine not yet available (exit status %d)", exitStatus)
+			}
+
+			return err
+		})
+		if err != nil {
+			return err
+		}
+
+		if (restartPending) {
+			ui.Say("Restart is still pending...")
+		} else {
+			ui.Say("Restart complete")
+		}
 	}
 
-	ui.Say("Waiting for machine to become available...")
-	err = p.retryable(ctx, func(ctx context.Context) error {
-		// wait for the machine to reboot.
-		cmd := &packer.RemoteCmd{Command: testRestartCommand}
-		err := cmd.RunWithUi(ctx, comm, ui)
-		if err != nil {
-			return err
-		}
-		exitStatus := cmd.ExitStatus()
-		if exitStatus != 0 {
-			return fmt.Errorf("Machine not yet available (exit status %d)", exitStatus)
-		}
-		cmd = &packer.RemoteCmd{Command: abortTestRestartCommand}
-		err = cmd.RunWithUi(ctx, comm, ui)
-		if err != nil {
-			return err
-		}
-
-		// wait for pending tasks to finish.
-		cmd = &packer.RemoteCmd{Command: pendingRebootElevatedCommand}
-		err = cmd.RunWithUi(ctx, comm, ui)
-		if err != nil {
-			return err
-		}
-		exitStatus = cmd.ExitStatus()
-		if exitStatus != 0 {
-			return fmt.Errorf("Machine not yet available (exit status %d)", exitStatus)
-		}
-
-		return nil
-	})
-	return err
+	return nil
 }
 
 // retryable will retry the given function over and over until a
