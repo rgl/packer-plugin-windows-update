@@ -257,7 +257,7 @@ func (p *Provisioner) restart(ctx context.Context, ui packer.Ui, comm packer.Com
 			return err
 		}
 
-		if (restartPending) {
+		if restartPending {
 			ui.Say("Restart is still pending...")
 		} else {
 			ui.Say("Restart complete")

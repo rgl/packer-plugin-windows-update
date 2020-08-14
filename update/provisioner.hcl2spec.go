@@ -9,19 +9,19 @@ import (
 // FlatConfig is an auto-generated flat version of Config.
 // Where the contents of a field with a `mapstructure:,squash` tag are bubbled up.
 type FlatConfig struct {
-	PackerBuildName     *string           `mapstructure:"packer_build_name" cty:"packer_build_name"`
-	PackerBuilderType   *string           `mapstructure:"packer_builder_type" cty:"packer_builder_type"`
-	PackerDebug         *bool             `mapstructure:"packer_debug" cty:"packer_debug"`
-	PackerForce         *bool             `mapstructure:"packer_force" cty:"packer_force"`
-	PackerOnError       *string           `mapstructure:"packer_on_error" cty:"packer_on_error"`
-	PackerUserVars      map[string]string `mapstructure:"packer_user_variables" cty:"packer_user_variables"`
-	PackerSensitiveVars []string          `mapstructure:"packer_sensitive_variables" cty:"packer_sensitive_variables"`
-	RestartTimeout      *string           `mapstructure:"restart_timeout" cty:"restart_timeout"`
-	Username            *string           `mapstructure:"username" cty:"username"`
-	Password            *string           `mapstructure:"password" cty:"password"`
-	SearchCriteria      *string           `mapstructure:"search_criteria" cty:"search_criteria"`
-	Filters             []string          `mapstructure:"filters" cty:"filters"`
-	UpdateLimit         *int              `mapstructure:"update_limit" cty:"update_limit"`
+	PackerBuildName     *string           `mapstructure:"packer_build_name" cty:"packer_build_name" hcl:"packer_build_name"`
+	PackerBuilderType   *string           `mapstructure:"packer_builder_type" cty:"packer_builder_type" hcl:"packer_builder_type"`
+	PackerDebug         *bool             `mapstructure:"packer_debug" cty:"packer_debug" hcl:"packer_debug"`
+	PackerForce         *bool             `mapstructure:"packer_force" cty:"packer_force" hcl:"packer_force"`
+	PackerOnError       *string           `mapstructure:"packer_on_error" cty:"packer_on_error" hcl:"packer_on_error"`
+	PackerUserVars      map[string]string `mapstructure:"packer_user_variables" cty:"packer_user_variables" hcl:"packer_user_variables"`
+	PackerSensitiveVars []string          `mapstructure:"packer_sensitive_variables" cty:"packer_sensitive_variables" hcl:"packer_sensitive_variables"`
+	RestartTimeout      *string           `mapstructure:"restart_timeout" cty:"restart_timeout" hcl:"restart_timeout"`
+	Username            *string           `mapstructure:"username" cty:"username" hcl:"username"`
+	Password            *string           `mapstructure:"password" cty:"password" hcl:"password"`
+	SearchCriteria      *string           `mapstructure:"search_criteria" cty:"search_criteria" hcl:"search_criteria"`
+	Filters             []string          `mapstructure:"filters" cty:"filters" hcl:"filters"`
+	UpdateLimit         *int              `mapstructure:"update_limit" cty:"update_limit" hcl:"update_limit"`
 }
 
 // FlatMapstructure returns a new FlatConfig.
@@ -41,7 +41,7 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"packer_debug":               &hcldec.AttrSpec{Name: "packer_debug", Type: cty.Bool, Required: false},
 		"packer_force":               &hcldec.AttrSpec{Name: "packer_force", Type: cty.Bool, Required: false},
 		"packer_on_error":            &hcldec.AttrSpec{Name: "packer_on_error", Type: cty.String, Required: false},
-		"packer_user_variables":      &hcldec.BlockAttrsSpec{TypeName: "packer_user_variables", ElementType: cty.String, Required: false},
+		"packer_user_variables":      &hcldec.AttrSpec{Name: "packer_user_variables", Type: cty.Map(cty.String), Required: false},
 		"packer_sensitive_variables": &hcldec.AttrSpec{Name: "packer_sensitive_variables", Type: cty.List(cty.String), Required: false},
 		"restart_timeout":            &hcldec.AttrSpec{Name: "restart_timeout", Type: cty.String, Required: false},
 		"username":                   &hcldec.AttrSpec{Name: "username", Type: cty.String, Required: false},

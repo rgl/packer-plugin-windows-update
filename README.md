@@ -6,14 +6,14 @@
 
 This is a Packer plugin for installing Windows updates (akin to [rgl/vagrant-windows-update](https://github.com/rgl/vagrant-windows-update)).
 
-**NB** This was only tested with Packer 1.5.1 on Windows Server 2019, macOS Catalina and Ubuntu 20.04.
+**NB** This was only tested with Packer 1.6.1 on Windows Server 2019, macOS Catalina and Ubuntu 20.04.
 
 # Usage
 
 [Download the binary from the releases page](https://github.com/rgl/packer-provisioner-windows-update/releases)
 and put it in the same directory as your `packer` executable.
 
-Use the provisioner from your packer template file, e.g. like in [rgl/windows-2016-vagrant](https://github.com/rgl/windows-2016-vagrant):
+Use the provisioner from your packer template file, e.g. like in [rgl/windows-vagrant](https://github.com/rgl/windows-vagrant):
 
 ```json
 {
