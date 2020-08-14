@@ -113,7 +113,7 @@ $operationResultCodes = @{
 function LookupOperationResultCode($code) {
     if ($operationResultCodes.ContainsKey($code)) {
         return $operationResultCodes[$code]
-    } 
+    }
     return "Unknown Code $code"
 }
 
@@ -178,9 +178,9 @@ while ($true) {
             break
         }
         $searchStatus = LookupOperationResultCode($searchResult.ResultCode)
-    } catch {        
+    } catch {
         $searchStatus = $_.ToString()
-    }    
+    }
     Write-Output "Search for Windows updates failed with '$searchStatus'. Retrying..."
     Start-Sleep -Seconds 5
 }
@@ -237,7 +237,7 @@ if ($updatesToDownload.Count) {
             $rebootRequired = $true
             break
         }
-        $downloadStatus = LookupOperationResultCode($downloadResult.ResultCode) 
+        $downloadStatus = LookupOperationResultCode($downloadResult.ResultCode)
         Write-Output "Download Windows updates failed with $downloadStatus. Retrying..."
         Start-Sleep -Seconds 5
     }
@@ -247,8 +247,20 @@ if ($updatesToInstall.Count) {
     Write-Output 'Installing Windows updates...'
     $updateInstaller = $updateSession.CreateUpdateInstaller()
     $updateInstaller.Updates = $updatesToInstall
-    $installResult = $updateInstaller.Install()
-    ExitWhenRebootRequired ($installResult.RebootRequired -or $rebootRequired)
+
+    $installRebootRequired = $false
+    try {
+        $installResult = $updateInstaller.Install()
+        $installRebootRequired = $installResult.RebootRequired
+    } catch {
+        Write-Warning "Windows update installation failed with error:"
+        Write-Warning $_.Exception.ToString()
+
+        # Windows update install failed for some reason
+        # restart the machine and try again
+        $rebootRequired = $true
+    }
+    ExitWhenRebootRequired ($installRebootRequired -or $rebootRequired)
 } else {
     ExitWhenRebootRequired $rebootRequired
     Write-Output 'No Windows updates found'
