@@ -1,17 +1,25 @@
-GO_HOST_OS := $(shell go env GOHOSTOS)
+GOPATH := $(shell go env GOPATH | tr '\\' '/')
+GOEXE := $(shell go env GOEXE)
+GOHOSTOS := $(shell go env GOHOSTOS)
+GOHOSTARCH := $(shell go env GOHOSTARCH)
+GORELEASER := $(GOPATH)/bin/goreleaser
 SOURCE_FILES := *.go update/* update/assets_vfsdata.go update/provisioner.hcl2spec.go
 
 all: build
 
-build: \
-	build/darwin/packer-provisioner-windows-update \
-	build/linux/packer-provisioner-windows-update \
-	build/windows/packer-provisioner-windows-update.exe
+$(GORELEASER):
+	wget -qO- https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | BINDIR=$(GOPATH)/bin sh
 
-build/%: $(SOURCE_FILES)
-	$(eval GOOS := $(word 2,$(subst /, ,$@)))
-	mkdir -p $(dir $@)
-	GOOS=$(GOOS) GOARCH=amd64 go build -v -o $@
+build: $(GORELEASER) $(SOURCE_FILES)
+	$(GORELEASER) build --skip-validate --rm-dist
+
+release-snapshot: $(GORELEASER) $(SOURCE_FILES)
+	$(GORELEASER) release --snapshot --skip-publish --rm-dist
+	$(MAKE) package-chocolatey
+
+release: $(GORELEASER) $(SOURCE_FILES)
+	$(GORELEASER) release --rm-dist
+	$(MAKE) package-chocolatey
 
 update/assets_vfsdata.go: update/assets_generate.go update/*.ps1
 	cd update && go run assets_generate.go
@@ -21,29 +29,22 @@ update/provisioner.hcl2spec.go: update/provisioner.go
 	go install github.com/hashicorp/packer/cmd/mapstructure-to-hcl2
 	go generate ./...
 
-dist: package-chocolatey
-
-package: build
-	cd build/darwin && tar -czf ../../packer-provisioner-windows-update-darwin.tgz packer-provisioner-windows-update
-	cd build/linux && tar -czf ../../packer-provisioner-windows-update-linux.tgz packer-provisioner-windows-update
-	cd build/windows && zip ../../packer-provisioner-windows-update-windows.zip packer-provisioner-windows-update.exe
-
-package-chocolatey: package
+package-chocolatey:
 	rm -rf tmp-package-chocolatey
 	cp -R package-chocolatey tmp-package-chocolatey
 	sed -i -E " \
-			s,@@VERSION@@,$(shell cat VERSION),g; \
-			s,@@CHECKSUM@@,$(shell sha256sum packer-provisioner-windows-update-windows.zip | awk '{print $$1}'),g; \
+			s,@@VERSION@@,$(shell ls dist/packer-provisioner-windows-update_*_windows_amd64.zip | sed -E 's,.+-update_(.+)_windows_amd64.zip,\1,g'),g; \
+			s,@@CHECKSUM@@,$(shell sha256sum dist/packer-provisioner-windows-update_*_windows_amd64.zip | awk '{print $$1}'),g; \
 			" \
 		tmp-package-chocolatey/*.nuspec \
 		tmp-package-chocolatey/tools/*.ps1
-	choco pack tmp-package-chocolatey/*.nuspec
+	choco pack --output-directory dist tmp-package-chocolatey/*.nuspec
 
-install: build/$(GO_HOST_OS)/packer-provisioner-windows-update
+install: dist/packer-provisioner-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)/packer-provisioner-windows-update$(GOEXE)
 	mkdir -p $(HOME)/.packer.d/plugins
 	cp -f $< $(HOME)/.packer.d/plugins/$(notdir $<)
 
 clean:
-	rm -rf build packer-provisioner-windows-update* tmp* update/assets_vfsdata.go
+	rm -rf dist tmp* update/assets_vfsdata.go
 
-.PHONY: build dist package package-chocolatey clean
+.PHONY: build release release-snapshot package-chocolatey clean
