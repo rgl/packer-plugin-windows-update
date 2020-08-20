@@ -14,7 +14,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A Packer plugin for installing Windows updates.
 
-**NB** This installs the plugin inside your user profile at `%APPDATA%\packer.d\plugins`.</description>
+**NB** This installs the plugin inside your user profile at `%USERPROFILE%\packer.d\plugins`.</description>
     <tags>packer windows-update</tags>
   </metadata>
   <files>

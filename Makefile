@@ -38,6 +38,7 @@ package-chocolatey:
 			" \
 		tmp-package-chocolatey/*.nuspec \
 		tmp-package-chocolatey/tools/*.ps1
+	unzip -d tmp-package-chocolatey/tools dist/packer-provisioner-windows-update_*_windows_amd64.zip
 	choco pack --output-directory dist tmp-package-chocolatey/*.nuspec
 
 install: dist/packer-provisioner-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)/packer-provisioner-windows-update$(GOEXE)
