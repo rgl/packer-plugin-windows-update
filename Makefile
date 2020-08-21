@@ -48,4 +48,4 @@ install: dist/packer-provisioner-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)/packer
 clean:
 	rm -rf dist tmp* update/assets_vfsdata.go
 
-.PHONY: build release release-snapshot package-chocolatey clean
+.PHONY: all build release release-snapshot package-chocolatey install clean
