@@ -8,7 +8,7 @@ SOURCE_FILES := *.go update/* update/assets_vfsdata.go update/provisioner.hcl2sp
 all: build
 
 $(GORELEASER):
-	wget -qO- https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | BINDIR=$(GOPATH)/bin sh
+	curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | BINDIR=$(GOPATH)/bin sh
 
 build: $(GORELEASER) $(SOURCE_FILES)
 	$(GORELEASER) build --skip-validate --rm-dist
