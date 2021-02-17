@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/hashicorp/packer/packer/plugin"
+	"github.com/hashicorp/packer-plugin-sdk/plugin"
 	"github.com/rgl/packer-provisioner-windows-update/update"
 )
 
