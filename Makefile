@@ -3,7 +3,7 @@ GOEXE := $(shell go env GOEXE)
 GOHOSTOS := $(shell go env GOHOSTOS)
 GOHOSTARCH := $(shell go env GOHOSTARCH)
 GORELEASER := $(GOPATH)/bin/goreleaser
-SOURCE_FILES := *.go update/* update/assets_vfsdata.go update/provisioner.hcl2spec.go
+SOURCE_FILES := *.go update/* update/provisioner.hcl2spec.go
 
 all: build
 
@@ -20,9 +20,6 @@ release-snapshot: $(GORELEASER) $(SOURCE_FILES)
 release: $(GORELEASER) $(SOURCE_FILES)
 	$(GORELEASER) release --rm-dist
 	$(MAKE) package-chocolatey
-
-update/assets_vfsdata.go: update/assets_generate.go update/*.ps1
-	cd update && go run assets_generate.go
 
 # see https://www.packer.io/guides/hcl/component-object-spec/
 update/provisioner.hcl2spec.go: update/provisioner.go
@@ -46,6 +43,6 @@ install: dist/packer-provisioner-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)/packer
 	cp -f $< $(HOME)/.packer.d/plugins/$(notdir $<)
 
 clean:
-	rm -rf dist tmp* update/assets_vfsdata.go
+	rm -rf dist tmp*
 
 .PHONY: all build release release-snapshot package-chocolatey install clean

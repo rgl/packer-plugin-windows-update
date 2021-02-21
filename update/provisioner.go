@@ -7,6 +7,7 @@ package update
 import (
 	"bytes"
 	"context"
+	_ "embed" // this is needed for using the go:embed directive
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -34,6 +35,9 @@ const (
 	abortTestRestartCommand      = "shutdown.exe -a"
 	retryableDelay               = 5 * time.Second
 )
+
+//go:embed windows-update.ps1
+var windowsUpdatePs1 []byte
 
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
@@ -151,7 +155,7 @@ func (p *Provisioner) Provision(ctx context.Context, ui packer.Ui, comm packer.C
 	ui.Say("Uploading the Windows update script...")
 	err = comm.Upload(
 		windowsUpdatePath,
-		bytes.NewReader(MustAsset("windows-update.ps1")),
+		bytes.NewReader(windowsUpdatePs1),
 		nil)
 	if err != nil {
 		return err

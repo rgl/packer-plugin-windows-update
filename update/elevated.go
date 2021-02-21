@@ -3,6 +3,7 @@
 package update
 
 import (
+	_ "embed" // this is needed for using the go:embed directive
 	"text/template"
 )
 
@@ -14,6 +15,9 @@ type elevatedOptions struct {
 	Command         string
 }
 
+//go:embed elevated-template.ps1
+var elevatedTemplatePs1 string
+
 var elevatedTemplate = template.Must(
 	template.New("Elevated").Parse(
-		string(MustAsset("elevated-template.ps1"))))
+		elevatedTemplatePs1))

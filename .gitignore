@@ -2,5 +2,4 @@ dist/
 packer-provisioner-windows-update
 packer-provisioner-windows-update.exe
 tmp*
-assets_vfsdata.go
 .idea/
