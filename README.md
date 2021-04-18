@@ -1,8 +1,6 @@
 # Packer Windows Update Provisioner
 
-[![Build status](https://github.com/rgl/packer-provisioner-windows-update/workflows/Build/badge.svg)](https://github.com/rgl/packer-provisioner-windows-update/actions?query=workflow%3ABuild)
-[![Latest version released](https://img.shields.io/chocolatey/v/packer-provisioner-windows-update.svg)](https://chocolatey.org/packages/packer-provisioner-windows-update)
-[![Package downloads count](https://img.shields.io/chocolatey/dt/packer-provisioner-windows-update.svg)](https://chocolatey.org/packages/packer-provisioner-windows-update)
+[![Build status](https://github.com/rgl/packer-plugin-windows-update/workflows/Build/badge.svg)](https://github.com/rgl/packer-plugin-windows-update/actions?query=workflow%3ABuild)
 
 This is a Packer plugin for installing Windows updates (akin to [rgl/vagrant-windows-update](https://github.com/rgl/vagrant-windows-update)).
 
@@ -10,18 +8,31 @@ This is a Packer plugin for installing Windows updates (akin to [rgl/vagrant-win
 
 # Usage
 
-[Download the binary from the releases page](https://github.com/rgl/packer-provisioner-windows-update/releases)
-and put it in the same directory as your `packer` executable.
+Configure your packer template to require a [release version of the plugin](https://github.com/rgl/packer-plugin-windows-update/releases), e.g.:
 
-Use the provisioner from your packer template file, e.g. like in [rgl/windows-vagrant](https://github.com/rgl/windows-vagrant):
+```hcl
+packer {
+  required_plugins {
+    windows-update = {
+      version = "0.12.0"
+      source = "github.com/rgl/windows-update"
+    }
+  }
+}
+```
 
-```json
-{
-    "provisioners": [
-        {
-            "type": "windows-update"
-        }
-    ]
+Initialize your packer template (it will install the plugin):
+
+```bash
+packer init your-template.pkr.hcl
+```
+
+Use this provisioner plugin from your packer template file, e.g. like in [rgl/windows-vagrant](https://github.com/rgl/windows-vagrant):
+
+```hcl
+build {
+  provisioner "windows-update" {
+  }
 }
 ```
 
@@ -44,19 +55,16 @@ Normally you would use one of the following settings:
 
 But you can customize them, e.g.:
 
-```json
-{
-    "provisioners": [
-        {
-            "type": "windows-update",
-            "search_criteria": "IsInstalled=0",
-            "filters": [
-                "exclude:$_.Title -like '*Preview*'",
-                "include:$true"
-            ],
-            "update_limit": 25
-        }
+```hcl
+build {
+  provisioner "windows-update" {
+    search_criteria = "IsInstalled=0"
+    filters = [
+      "exclude:$_.Title -like '*Preview*'",
+      "include:$true",
     ]
+    update_limit = 25
+  }
 }
 ```
 
@@ -90,18 +98,7 @@ Build:
 make
 ```
 
-Configure packer with the path to this provisioner by adding something like the
-following snippet to your `~/.packerconfig` (or `%APPDATA%/packer.config`):
-
-```json
-{
-    "provisioners": {
-        "windows-update": "/home/rgl/Projects/packer-provisioner-windows-update/packer-provisioner-windows-update"
-    }
-}
-```
-
-Or install into `$HOME/.packer.d/plugins` with:
+Install the plugin into `$HOME/.packer.d/plugins` with:
 
 ```
 make install

@@ -1,5 +1,5 @@
 dist/
-packer-provisioner-windows-update
-packer-provisioner-windows-update.exe
+packer-plugin-windows-update
+packer-plugin-windows-update.exe
 tmp*
 .idea/

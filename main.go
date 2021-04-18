@@ -4,21 +4,23 @@ import (
 	"log"
 
 	"github.com/hashicorp/packer-plugin-sdk/plugin"
-	"github.com/rgl/packer-provisioner-windows-update/update"
+	v "github.com/hashicorp/packer-plugin-sdk/version"
+	"github.com/rgl/packer-plugin-windows-update/update"
 )
 
 var (
-	version = "unknown"
+	version = "0.0.0"
 	commit  = "unknown"
 	date    = "unknown"
 )
 
 func main() {
-	log.Printf("Starting packer-provisioner-windows-update (version %s; commit %s; date %s)", version, commit, date)
-	server, err := plugin.Server()
+	log.Printf("Starting packer-plugin-windows-update (version %s; commit %s; date %s)", version, commit, date)
+	pps := plugin.NewSet()
+	pps.RegisterProvisioner(plugin.DEFAULT_NAME, new(update.Provisioner))
+	pps.SetVersion(v.InitializePluginVersion(version, ""))
+	err := pps.Run()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to start: %v", err)
 	}
-	server.RegisterProvisioner(new(update.Provisioner))
-	server.Serve()
 }

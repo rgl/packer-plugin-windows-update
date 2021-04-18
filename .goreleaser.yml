@@ -1,6 +1,3 @@
-before:
-  hooks:
-    - go mod download
 builds:
   - env:
       - CGO_ENABLED=0
@@ -20,6 +17,7 @@ builds:
       - -X main.commit={{ .Commit }}
       - -X main.date={{ .CommitDate }}
     mod_timestamp: '{{ .CommitTimestamp }}'
+    binary: '{{ .ProjectName }}_v{{ .Version }}_{{ .Env.API_VERSION }}_{{ .Os }}_{{ .Arch }}'
 changelog:
   sort: asc
   filters:
@@ -32,6 +30,8 @@ release:
   draft: true
   prerelease: auto
 archives:
-  - format_overrides:
-      - goos: windows
-        format: zip
+  - format: zip
+    name_template: '{{ .ProjectName }}_v{{ .Version }}_{{ .Env.API_VERSION }}_{{ .Os }}_{{ .Arch }}'
+checksum:
+  name_template: '{{ .ProjectName }}_v{{ .Version }}_SHA256SUMS'
+  algorithm: sha256
