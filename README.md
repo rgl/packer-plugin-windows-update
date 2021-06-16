@@ -4,7 +4,9 @@
 
 This is a Packer plugin for installing Windows updates (akin to [rgl/vagrant-windows-update](https://github.com/rgl/vagrant-windows-update)).
 
-**NB** This was only tested with Packer 1.7.0 on Windows Server 2019, macOS Catalina and Ubuntu 20.04.
+**NB** This was only tested with the following:
+- Packer 1.7.0 on Windows Server 2019, macOS Catalina and Ubuntu 20.04.
+- Packer 1.7.2 on Debian 9.5.
 
 # Usage
 
@@ -14,7 +16,7 @@ Configure your packer template to require a [release version of the plugin](http
 packer {
   required_plugins {
     windows-update = {
-      version = "0.12.0"
+      version = ">= 0.12.0"
       source = "github.com/rgl/windows-update"
     }
   }
