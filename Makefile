@@ -4,6 +4,7 @@ GOHOSTOS := $(shell go env GOHOSTOS)
 GOHOSTARCH := $(shell go env GOHOSTARCH)
 GORELEASER := $(GOPATH)/bin/goreleaser
 SOURCE_FILES := *.go update/* update/provisioner.hcl2spec.go
+PLUGIN_PATH := dist/packer-plugin-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)/packer-plugin-windows-update_*_$(GOHOSTOS)_$(GOHOSTARCH)$(GOEXE)
 
 all: build
 
@@ -30,11 +31,15 @@ update/provisioner.hcl2spec.go: update/provisioner.go
 	go install github.com/hashicorp/packer/cmd/mapstructure-to-hcl2
 	go generate ./...
 
-install: dist/packer-plugin-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)/packer-plugin-windows-update_*_$(GOHOSTOS)_$(GOHOSTARCH)$(GOEXE)
+install: uninstall $(PLUGIN_PATH)
 	mkdir -p $(HOME)/.packer.d/plugins
-	cp -f $< $(HOME)/.packer.d/plugins/packer-provisioner-windows-update$(GOEXE)
+	cp -f $(PLUGIN_PATH) $(HOME)/.packer.d/plugins/packer-plugin-windows-update$(GOEXE)
+
+uninstall:
+	rm -f $(HOME)/.packer.d/plugins/packer-provisioner-windows-update$(GOEXE) # rm the old name too.
+	rm -f $(HOME)/.packer.d/plugins/packer-plugin-windows-update$(GOEXE)
 
 clean:
 	rm -rf dist tmp*
 
-.PHONY: all init build release release-snapshot install clean
+.PHONY: all init build release release-snapshot install uninstall clean
