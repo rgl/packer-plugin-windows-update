@@ -15,7 +15,7 @@ $(GORELEASER):
 
 build: init $(GORELEASER) $(SOURCE_FILES)
 	API_VERSION="$(shell go run . describe 2>/dev/null | jq -r .api_version)" \
-		$(GORELEASER) build --skip-validate --rm-dist
+		$(GORELEASER) build --skip-validate --rm-dist --single-target
 
 release-snapshot: init $(GORELEASER) $(SOURCE_FILES)
 	API_VERSION="$(shell go run . describe 2>/dev/null | jq -r .api_version)" \
