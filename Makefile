@@ -31,7 +31,7 @@ update/provisioner.hcl2spec.go: update/provisioner.go
 	go install github.com/hashicorp/packer/cmd/mapstructure-to-hcl2
 	go generate ./...
 
-install: uninstall $(PLUGIN_PATH)
+install: uninstall $(PLUGIN_PATH) build
 	mkdir -p $(HOME)/.packer.d/plugins
 	cp -f $(PLUGIN_PATH) $(HOME)/.packer.d/plugins/packer-plugin-windows-update$(GOEXE)
 
