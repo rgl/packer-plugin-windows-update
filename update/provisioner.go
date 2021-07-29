@@ -1,4 +1,4 @@
-//go:generate mapstructure-to-hcl2 -type Config
+//go:generate packer-sdc mapstructure-to-hcl2 -type Config
 
 // NB this code was based on https://github.com/hashicorp/packer/blob/81522dced0b25084a824e79efda02483b12dc7cd/provisioner/windows-restart/provisioner.go
 

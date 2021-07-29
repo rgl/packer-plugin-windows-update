@@ -28,7 +28,7 @@ release: init $(GORELEASER) $(SOURCE_FILES)
 
 # see https://www.packer.io/guides/hcl/component-object-spec/
 update/provisioner.hcl2spec.go: update/provisioner.go
-	go install github.com/hashicorp/packer/cmd/mapstructure-to-hcl2
+	go install github.com/hashicorp/packer-plugin-sdk/cmd/packer-sdc@latest
 	go generate ./...
 
 install: uninstall $(PLUGIN_PATH) build
