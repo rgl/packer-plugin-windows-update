@@ -45,6 +45,8 @@ type Config struct {
 	// The timeout for waiting for the machine to restart
 	RestartTimeout time.Duration `mapstructure:"restart_timeout"`
 
+	UpdateMaxRetries int `mapstructure:"update_max_retries"`
+
 	// Instructs the communicator to run the remote script as a
 	// Windows scheduled task, effectively elevating the remote
 	// user by impersonating a logged-in user.
@@ -89,6 +91,10 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 
 	if p.config.RestartTimeout == 0 {
 		p.config.RestartTimeout = 4 * time.Hour
+	}
+
+	if p.config.UpdateMaxRetries == 0 {
+		p.config.UpdateMaxRetries = 5
 	}
 
 	if p.config.Username == "" {
@@ -191,20 +197,28 @@ func (p *Provisioner) Provision(ctx context.Context, ui packer.Ui, comm packer.C
 
 func (p *Provisioner) update(ctx context.Context, ui packer.Ui, comm packer.Communicator) (bool, error) {
 	ui.Say("Running Windows update...")
-	cmd := &packer.RemoteCmd{Command: elevatedCommand}
-	err := cmd.RunWithUi(ctx, comm, ui)
-	if err != nil {
-		return false, err
-	}
-	var exitStatus = cmd.ExitStatus()
-	switch exitStatus {
-	case 0:
-		return false, nil
-	case 101:
-		return true, nil
-	default:
-		return false, fmt.Errorf("Windows update script exited with non-zero exit status: %d", exitStatus)
-	}
+	var restartPending bool
+	err := retry.Config{
+		RetryDelay: func() time.Duration { return retryableDelay },
+		Tries:      p.config.UpdateMaxRetries,
+	}.Run(ctx, func(ctx context.Context) error {
+		cmd := &packer.RemoteCmd{Command: elevatedCommand}
+		err := cmd.RunWithUi(ctx, comm, ui)
+		if err != nil {
+			return err
+		}
+		var exitStatus = cmd.ExitStatus()
+		switch exitStatus {
+		case 0:
+			return nil
+		case 101:
+			restartPending = true
+			return nil
+		default:
+			return fmt.Errorf("Windows update script exited with non-zero exit status: %d", exitStatus)
+		}
+	})
+	return restartPending, err
 }
 
 func (p *Provisioner) restart(ctx context.Context, ui packer.Ui, comm packer.Communicator) error {
