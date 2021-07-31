@@ -45,8 +45,6 @@ type Config struct {
 	// The timeout for waiting for the machine to restart
 	RestartTimeout time.Duration `mapstructure:"restart_timeout"`
 
-	UpdateMaxRetries int `mapstructure:"update_max_retries"`
-
 	// Instructs the communicator to run the remote script as a
 	// Windows scheduled task, effectively elevating the remote
 	// user by impersonating a logged-in user.
@@ -63,6 +61,10 @@ type Config struct {
 
 	// Adds a limit to how many updates are installed at a time
 	UpdateLimit int `mapstructure:"update_limit"`
+
+	// Max times the provisioner will try install the updates
+	// in case of failure.
+	UpdateMaxRetries int `mapstructure:"update_max_retries"`
 
 	ctx interpolate.Context
 }
