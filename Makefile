@@ -28,7 +28,7 @@ release: init $(GORELEASER) $(SOURCE_FILES)
 
 # see https://www.packer.io/guides/hcl/component-object-spec/
 update/provisioner.hcl2spec.go: update/provisioner.go
-	go install github.com/hashicorp/packer-plugin-sdk/cmd/packer-sdc@latest
+	go install github.com/hashicorp/packer-plugin-sdk/cmd/packer-sdc@$(shell awk '/github.com\/hashicorp\/packer-plugin-sdk /{print $$2}' go.mod)
 	go generate ./...
 
 install: uninstall $(PLUGIN_PATH) build
