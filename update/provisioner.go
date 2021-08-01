@@ -34,6 +34,7 @@ const (
 	testRestartCommand           = "shutdown.exe -f -r -t 60 -c \"packer restart test\""
 	abortTestRestartCommand      = "shutdown.exe -a"
 	retryableDelay               = 5 * time.Second
+	uploadTimeout                = 5 * time.Minute
 )
 
 //go:embed windows-update.ps1
@@ -118,7 +119,6 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 }
 
 func (p *Provisioner) Provision(ctx context.Context, ui packer.Ui, comm packer.Communicator, _ map[string]interface{}) error {
-	uploadTimeout := 5 * time.Minute
 	ui.Say("Uploading the Windows update elevated script...")
 	var buffer bytes.Buffer
 	err := elevatedTemplate.Execute(&buffer, elevatedOptions{
