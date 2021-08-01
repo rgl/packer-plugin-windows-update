@@ -95,10 +95,6 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 		p.config.RestartTimeout = 4 * time.Hour
 	}
 
-	if p.config.UpdateMaxRetries == 0 {
-		p.config.UpdateMaxRetries = 5
-	}
-
 	if p.config.Username == "" {
 		p.config.Username = "SYSTEM"
 	}
@@ -112,6 +108,10 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 
 	if p.config.UpdateLimit == 0 {
 		p.config.UpdateLimit = 1000
+	}
+
+	if p.config.UpdateMaxRetries == 0 {
+		p.config.UpdateMaxRetries = 5
 	}
 
 	return errs
