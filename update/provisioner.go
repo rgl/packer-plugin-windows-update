@@ -62,6 +62,10 @@ type Config struct {
 	// Adds a limit to how many updates are installed at a time
 	UpdateLimit int `mapstructure:"update_limit"`
 
+	// Max times the provisioner will try install the updates
+	// in case of failure.
+	UpdateMaxRetries int `mapstructure:"update_max_retries"`
+
 	ctx interpolate.Context
 }
 
@@ -91,6 +95,10 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 		p.config.RestartTimeout = 4 * time.Hour
 	}
 
+	if p.config.UpdateMaxRetries == 0 {
+		p.config.UpdateMaxRetries = 5
+	}
+
 	if p.config.Username == "" {
 		p.config.Username = "SYSTEM"
 	}
@@ -110,6 +118,7 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 }
 
 func (p *Provisioner) Provision(ctx context.Context, ui packer.Ui, comm packer.Communicator, _ map[string]interface{}) error {
+	uploadTimeout := 5 * time.Minute
 	ui.Say("Uploading the Windows update elevated script...")
 	var buffer bytes.Buffer
 	err := elevatedTemplate.Execute(&buffer, elevatedOptions{
@@ -123,10 +132,15 @@ func (p *Provisioner) Provision(ctx context.Context, ui packer.Ui, comm packer.C
 		fmt.Printf("Error creating elevated template: %s", err)
 		return err
 	}
-	err = comm.Upload(
-		elevatedPath,
-		bytes.NewReader(buffer.Bytes()),
-		nil)
+	err = retry.Config{StartTimeout: uploadTimeout}.Run(ctx, func(context.Context) error {
+		if err := comm.Upload(
+			elevatedPath,
+			bytes.NewReader(buffer.Bytes()),
+			nil); err != nil {
+			return fmt.Errorf("Error uploading the Windows update elevated script: %s", err)
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -144,10 +158,15 @@ func (p *Provisioner) Provision(ctx context.Context, ui packer.Ui, comm packer.C
 		fmt.Printf("Error creating elevated template: %s", err)
 		return err
 	}
-	err = comm.Upload(
-		pendingRebootElevatedPath,
-		bytes.NewReader(buffer.Bytes()),
-		nil)
+	err = retry.Config{StartTimeout: uploadTimeout}.Run(ctx, func(context.Context) error {
+		if err := comm.Upload(
+			pendingRebootElevatedPath,
+			bytes.NewReader(buffer.Bytes()),
+			nil); err != nil {
+			return fmt.Errorf("Error uploading the Windows update check for reboot required elevated script: %s", err)
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -180,20 +199,28 @@ func (p *Provisioner) Provision(ctx context.Context, ui packer.Ui, comm packer.C
 
 func (p *Provisioner) update(ctx context.Context, ui packer.Ui, comm packer.Communicator) (bool, error) {
 	ui.Say("Running Windows update...")
-	cmd := &packer.RemoteCmd{Command: elevatedCommand}
-	err := cmd.RunWithUi(ctx, comm, ui)
-	if err != nil {
-		return false, err
-	}
-	var exitStatus = cmd.ExitStatus()
-	switch exitStatus {
-	case 0:
-		return false, nil
-	case 101:
-		return true, nil
-	default:
-		return false, fmt.Errorf("Windows update script exited with non-zero exit status: %d", exitStatus)
-	}
+	var restartPending bool
+	err := retry.Config{
+		RetryDelay: func() time.Duration { return retryableDelay },
+		Tries:      p.config.UpdateMaxRetries,
+	}.Run(ctx, func(ctx context.Context) error {
+		cmd := &packer.RemoteCmd{Command: elevatedCommand}
+		err := cmd.RunWithUi(ctx, comm, ui)
+		if err != nil {
+			return err
+		}
+		var exitStatus = cmd.ExitStatus()
+		switch exitStatus {
+		case 0:
+			return nil
+		case 101:
+			restartPending = true
+			return nil
+		default:
+			return fmt.Errorf("Windows update script exited with non-zero exit status: %d", exitStatus)
+		}
+	})
+	return restartPending, err
 }
 
 func (p *Provisioner) restart(ctx context.Context, ui packer.Ui, comm packer.Communicator) error {

@@ -24,6 +24,7 @@ type FlatConfig struct {
 	SearchCriteria      *string           `mapstructure:"search_criteria" cty:"search_criteria" hcl:"search_criteria"`
 	Filters             []string          `mapstructure:"filters" cty:"filters" hcl:"filters"`
 	UpdateLimit         *int              `mapstructure:"update_limit" cty:"update_limit" hcl:"update_limit"`
+	UpdateMaxRetries    *int              `mapstructure:"update_max_retries" cty:"update_max_retries" hcl:"update_max_retries"`
 }
 
 // FlatMapstructure returns a new FlatConfig.
@@ -52,6 +53,7 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"search_criteria":            &hcldec.AttrSpec{Name: "search_criteria", Type: cty.String, Required: false},
 		"filters":                    &hcldec.AttrSpec{Name: "filters", Type: cty.List(cty.String), Required: false},
 		"update_limit":               &hcldec.AttrSpec{Name: "update_limit", Type: cty.Number, Required: false},
+		"update_max_retries":         &hcldec.AttrSpec{Name: "update_max_retries", Type: cty.Number, Required: false},
 	}
 	return s
 }
