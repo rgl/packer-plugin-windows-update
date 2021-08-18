@@ -30,6 +30,10 @@ update/provisioner.hcl2spec.go: update/provisioner.go
 	go install github.com/hashicorp/packer/cmd/mapstructure-to-hcl2
 	go generate ./...
 
+package-chocolatey:
+	mkdir -p dist
+	choco pack --output-directory dist package-chocolatey/*.nuspec
+
 install: dist/packer-plugin-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)/packer-plugin-windows-update_*_$(GOHOSTOS)_$(GOHOSTARCH)$(GOEXE)
 	mkdir -p $(HOME)/.packer.d/plugins
 	cp -f $< $(HOME)/.packer.d/plugins/packer-provisioner-windows-update$(GOEXE)
@@ -37,4 +41,4 @@ install: dist/packer-plugin-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)/packer-plug
 clean:
 	rm -rf dist tmp*
 
-.PHONY: all init build release release-snapshot install clean
+.PHONY: all init build release release-snapshot package-chocolatey install clean
