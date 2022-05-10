@@ -12,7 +12,7 @@ init:
 	go mod download
 
 $(GORELEASER):
-	wget -qO- https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | BINDIR=$(GOPATH)/bin sh
+	go install github.com/goreleaser/goreleaser@v1.6.3
 
 build: init $(GORELEASER) $(SOURCE_FILES)
 	API_VERSION="$(shell go run . describe 2>/dev/null | jq -r .api_version)" \
