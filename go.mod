@@ -1,5 +1,7 @@
 module github.com/rgl/packer-plugin-windows-update
 
+go 1.20
+
 require (
 	github.com/hashicorp/hcl/v2 v2.13.0
 	github.com/hashicorp/packer-plugin-sdk v0.4.0
@@ -56,5 +58,3 @@ require (
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 )
-
-go 1.18
