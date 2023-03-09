@@ -12,19 +12,19 @@ init:
 	go mod download
 
 $(GORELEASER):
-	go install github.com/goreleaser/goreleaser@v1.8.3
+	go install github.com/goreleaser/goreleaser@v1.16.0
 
 build: init $(GORELEASER) $(SOURCE_FILES)
 	API_VERSION="$(shell go run . describe 2>/dev/null | jq -r .api_version)" \
-		$(GORELEASER) build --skip-validate --rm-dist --single-target
+		$(GORELEASER) build --skip-validate --clean --single-target
 
 release-snapshot: init $(GORELEASER) $(SOURCE_FILES)
 	API_VERSION="$(shell go run . describe 2>/dev/null | jq -r .api_version)" \
-		$(GORELEASER) release --snapshot --skip-publish --rm-dist
+		$(GORELEASER) release --snapshot --skip-publish --clean
 
 release: init $(GORELEASER) $(SOURCE_FILES)
 	API_VERSION="$(shell go run . describe 2>/dev/null | jq -r .api_version)" \
-		$(GORELEASER) release --rm-dist
+		$(GORELEASER) release --clean
 
 # see https://www.packer.io/guides/hcl/component-object-spec/
 update/provisioner.hcl2spec.go: update/provisioner.go
