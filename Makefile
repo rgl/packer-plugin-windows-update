@@ -12,7 +12,7 @@ init:
 	go mod download
 
 $(GORELEASER):
-	go install github.com/goreleaser/goreleaser@v1.16.0
+	go install github.com/goreleaser/goreleaser@v1.16.1
 
 build: init $(GORELEASER) $(SOURCE_FILES)
 	API_VERSION="$(shell go run . describe 2>/dev/null | jq -r .api_version)" \
