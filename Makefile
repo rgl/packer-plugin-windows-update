@@ -2,9 +2,10 @@ GOPATH := $(shell go env GOPATH | tr '\\' '/')
 GOEXE := $(shell go env GOEXE)
 GOHOSTOS := $(shell go env GOHOSTOS)
 GOHOSTARCH := $(shell go env GOHOSTARCH)
+GOHOSTARCHVERSION := $(shell go env "GO$(shell go env GOHOSTARCH | tr '[:lower:]' '[:upper:]')")
 GORELEASER := $(GOPATH)/bin/goreleaser
 SOURCE_FILES := *.go update/* update/provisioner.hcl2spec.go
-PLUGIN_PATH := dist/packer-plugin-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)/packer-plugin-windows-update_*_$(GOHOSTOS)_$(GOHOSTARCH)$(GOEXE)
+PLUGIN_PATH := dist/packer-plugin-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)_$(GOHOSTARCHVERSION)/packer-plugin-windows-update_*_$(GOHOSTOS)_$(GOHOSTARCH)$(GOEXE)
 
 all: build
 
