@@ -41,6 +41,12 @@ uninstall:
 	rm -f $(HOME)/.packer.d/plugins/packer-plugin-windows-update$(GOEXE)
 
 clean:
-	rm -rf dist tmp*
+	rm -rf dist tmp* output-test *.log
 
-.PHONY: all init build release release-snapshot install uninstall clean
+test:
+	rm -rf output-test test.log
+	CHECKPOINT_DISABLE=1 PACKER_LOG=1 PACKER_LOG_PATH=test.log \
+	PKR_VAR_disk_image=~/.vagrant.d/boxes/windows-2022-amd64/0.0.0/libvirt/box.img \
+		packer build -only=qemu.test -on-error=abort test.pkr.hcl
+
+.PHONY: all init build release release-snapshot install uninstall clean test

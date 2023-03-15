@@ -3,3 +3,5 @@ packer-plugin-windows-update
 packer-plugin-windows-update.exe
 tmp*
 .idea/
+output-*/
+*.log
