@@ -101,5 +101,9 @@ $result = $t.LastTaskResult
 if (Test-Path $log) {
     Remove-Item $log -Force -ErrorAction SilentlyContinue | Out-Null
 }
+
+# delete scheduled task
+$f.DeleteTask("\$name", 0)
+
 [System.Runtime.Interopservices.Marshal]::ReleaseComObject($s) | Out-Null
 exit $result
