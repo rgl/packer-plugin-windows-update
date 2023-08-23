@@ -203,7 +203,7 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
         Write-Output "Warning The update '$updateTitle' has the CanRequestUserInput flag set (if the install hangs, you might need to exclude it with the filter 'exclude:`$_.InstallationBehavior.CanRequestUserInput' or 'exclude:`$_.Title -like '*$updateTitle*'')"
     }
 
-    if (($updatesToInstall | Select-Object -ExpandProperty Title) -contains $updateTitle) {
+    if (($updatesToInstall | Select -ExpandProperty Title) -contains $updateTitle) {
         Write-Output "Warning, The update '$updateTitle' is already queued for install, cannot queue again, skipping."
         continue
     }
