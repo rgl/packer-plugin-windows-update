@@ -204,7 +204,7 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     }
 
     if (($updatesToInstall | Select-Object -ExpandProperty Title) -contains $updateTitle) {
-        Write-Output "Warning, The update '$updateTitle' is already queued for install, cannot queue the same update again! Skipping."
+        Write-Output "Warning, The update '$updateTitle' has already been found, cannot add the same update again! Skipping."
         continue
     }
 
