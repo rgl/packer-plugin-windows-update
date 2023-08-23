@@ -43,8 +43,8 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 trap {
     Write-Output "ERROR: $_"
-    Write-Output (($_.ScriptStackTrace -split '\r?\n') -replace '^(.*)$','ERROR: $1')
-    Write-Output (($_.Exception.ToString() -split '\r?\n') -replace '^(.*)$','ERROR EXCEPTION: $1')
+    Write-Output (($_.ScriptStackTrace -split '\r?\n') -replace '^(.*)$', 'ERROR: $1')
+    Write-Output (($_.Exception.ToString() -split '\r?\n') -replace '^(.*)$', 'ERROR EXCEPTION: $1')
     ExitWithCode 1
 }
 
@@ -81,17 +81,18 @@ public static class Windows
 
 function Wait-Condition {
     param(
-      [scriptblock]$Condition,
-      [int]$DebounceSeconds=15
+        [scriptblock]$Condition,
+        [int]$DebounceSeconds = 15
     )
     process {
         $begin = [Windows]::GetUptime()
         do {
             Start-Sleep -Seconds 1
             try {
-              $result = &$Condition
-            } catch {
-              $result = $false
+                $result = &$Condition
+            }
+            catch {
+                $result = $false
             }
             if (-not $result) {
                 $begin = [Windows]::GetUptime()
@@ -133,7 +134,7 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
 
     if ($rebootRequired) {
         Write-Output 'Waiting for the Windows Modules Installer to exit...'
-        Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0}
+        Wait-Condition { (Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0 }
         ExitWithCode 101
     }
 }
@@ -146,9 +147,9 @@ if ($OnlyCheckForRebootRequired) {
 }
 
 $updateFilters = $Filters | ForEach-Object {
-    $action, $expression = $_ -split ':',2
+    $action, $expression = $_ -split ':', 2
     New-Object PSObject -Property @{
-        Action = $action
+        Action     = $action
         Expression = [ScriptBlock]::Create($expression)
     }
 }
@@ -178,7 +179,8 @@ while ($true) {
             break
         }
         $searchStatus = LookupOperationResultCode($searchResult.ResultCode)
-    } catch {
+    }
+    catch {
         $searchStatus = $_.ToString()
     }
     Write-Output "Search for Windows updates failed with '$searchStatus'. Retrying..."
@@ -188,7 +190,7 @@ $rebootRequired = $false
 for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $update = $searchResult.Updates.Item($i)
     $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
-    $updateSize = ($update.MaxDownloadSize/1024/1024).ToString('0.##')
+    $updateSize = ($update.MaxDownloadSize / 1024 / 1024).ToString('0.##')
     $updateTitle = $update.Title
     $updateSummary = "Windows update ($updateDate; $updateSize MB): $updateTitle"
 
@@ -199,6 +201,11 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
 
     if ($update.InstallationBehavior.CanRequestUserInput) {
         Write-Output "Warning The update '$updateTitle' has the CanRequestUserInput flag set (if the install hangs, you might need to exclude it with the filter 'exclude:`$_.InstallationBehavior.CanRequestUserInput' or 'exclude:`$_.Title -like '*$updateTitle*'')"
+    }
+
+    if (($updatesToInstall | Select-Object -ExpandProperty Title) -contains $updateTitle) {
+        Write-Output "Warning, The update '$updateTitle' is already queued for install, cannot queue again, skipping."
+        continue
     }
 
     Write-Output "Found $updateSummary"
@@ -216,13 +223,14 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
 }
 
 if ($updatesToDownload.Count) {
-    $updateSize = ($updatesToDownloadSize/1024/1024).ToString('0.##')
+    $updateSize = ($updatesToDownloadSize / 1024 / 1024).ToString('0.##')
     Write-Output "Downloading Windows updates ($($updatesToDownload.Count) updates; $updateSize MB)..."
     $updateDownloader = $updateSession.CreateUpdateDownloader()
     # https://docs.microsoft.com/en-us/windows/desktop/api/winnt/ns-winnt-_osversioninfoexa#remarks
     if (($windowsOsVersion.Major -eq 6 -and $windowsOsVersion.Minor -gt 1) -or ($windowsOsVersion.Major -gt 6)) {
         $updateDownloader.Priority = 4 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh), 4 (dpExtraHigh).
-    } else {
+    }
+    else {
         # For versions lower then 6.2 highest prioirty is 3
         $updateDownloader.Priority = 3 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh).
     }
@@ -252,7 +260,8 @@ if ($updatesToInstall.Count) {
     try {
         $installResult = $updateInstaller.Install()
         $installRebootRequired = $installResult.RebootRequired
-    } catch {
+    }
+    catch {
         Write-Warning "Windows update installation failed with error:"
         Write-Warning $_.Exception.ToString()
 
@@ -261,7 +270,8 @@ if ($updatesToInstall.Count) {
         $rebootRequired = $true
     }
     ExitWhenRebootRequired ($installRebootRequired -or $rebootRequired)
-} else {
+}
+else {
     ExitWhenRebootRequired $rebootRequired
     Write-Output 'No Windows updates found'
 }
