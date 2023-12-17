@@ -216,6 +216,9 @@ func (p *Provisioner) update(ctx context.Context, ui packer.Ui, comm packer.Comm
 		case 101:
 			restartPending = true
 			return nil
+		case 2147942501: //windows 2012
+			restartPending = true
+			return nil
 		default:
 			return fmt.Errorf("Windows update script exited with non-zero exit status: %d", exitStatus)
 		}
@@ -277,6 +280,8 @@ func (p *Provisioner) restart(ctx context.Context, ui packer.Ui, comm packer.Com
 			case exitStatus == 0:
 				restartPending = false
 			case exitStatus == 101:
+				restartPending = true
+			case exitStatus == 2147942501: //windows 2012
 				restartPending = true
 			default:
 				return fmt.Errorf("Machine not yet available (exit status %d)", exitStatus)
