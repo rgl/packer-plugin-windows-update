@@ -13,7 +13,7 @@ init:
 	go mod download
 
 $(GORELEASER):
-	go install github.com/goreleaser/goreleaser@v1.16.1
+	go install github.com/goreleaser/goreleaser@v1.22.1
 
 build: init $(GORELEASER) $(SOURCE_FILES)
 	API_VERSION="$(shell go run . describe 2>/dev/null | jq -r .api_version)" \
@@ -46,7 +46,7 @@ clean:
 test:
 	rm -rf output-test test.log
 	CHECKPOINT_DISABLE=1 PACKER_LOG=1 PACKER_LOG_PATH=test.log \
-	PKR_VAR_disk_image=~/.vagrant.d/boxes/windows-2022-amd64/0.0.0/libvirt/box.img \
+	PKR_VAR_disk_image=~/.vagrant.d/boxes/windows-2022-amd64/0.0.0/libvirt/box_0.img \
 		packer build -only=qemu.test -on-error=abort test.pkr.hcl
 
 .PHONY: all init build release release-snapshot install uninstall clean test
