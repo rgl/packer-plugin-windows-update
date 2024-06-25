@@ -98,20 +98,9 @@ Build:
 make
 ```
 
-Install the plugin into `$HOME/.packer.d/plugins` with:
+Install the [rgl/windows-vagrant](https://github.com/rgl/windows-vagrant) vagrant box.
 
-```bash
-make install
-```
-
-**And comment the `required_plugin` block in your packer template file.**
-
-If you are having problems running `packer` set the `PACKER_LOG=1` environment
-variable to see more information.
-
-## Test (QEMU)
-
-You can test the plugin with a previously installed [rgl/windows-vagrant](https://github.com/rgl/windows-vagrant) image with:
+Test with QEMU:
 
 ```bash
 make test

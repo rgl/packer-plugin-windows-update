@@ -36,21 +36,10 @@ update/provisioner.hcl2spec.go: update/provisioner.go
 	go install github.com/hashicorp/packer-plugin-sdk/cmd/packer-sdc@$(shell go list -m -f '{{.Version}}' github.com/hashicorp/packer-plugin-sdk)
 	go generate ./...
 
-install: uninstall $(PLUGIN_PATH) build
-	mkdir -p $(HOME)/.packer.d/plugins
-	cp -f $(PLUGIN_PATH) $(HOME)/.packer.d/plugins/packer-plugin-windows-update$(GOEXE)
-
-uninstall:
-	rm -f $(HOME)/.packer.d/plugins/packer-provisioner-windows-update$(GOEXE) # rm the old name too.
-	rm -f $(HOME)/.packer.d/plugins/packer-plugin-windows-update$(GOEXE)
-
 clean:
 	rm -rf dist tmp* output-test *.log
 
-test:
-	rm -rf output-test test.log
-	CHECKPOINT_DISABLE=1 PACKER_LOG=1 PACKER_LOG_PATH=test.log \
-	PKR_VAR_disk_image=~/.vagrant.d/boxes/windows-2022-amd64/0.0.0/libvirt/box_0.img \
-		packer build -only=qemu.test -on-error=abort test.pkr.hcl
+test: build
+	./test.sh
 
 .PHONY: all init build release release-snapshot install uninstall clean test

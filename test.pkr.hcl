@@ -1,3 +1,18 @@
+packer {
+  required_plugins {
+    # see https://github.com/hashicorp/packer-plugin-qemu
+    qemu = {
+      version = "1.1.0"
+      source  = "github.com/hashicorp/qemu"
+    }
+    # see https://github.com/rgl/packer-plugin-windows-update
+    windows-update = {
+      version = ">= 0.0.0"
+      source = "github.com/rgl/windows-update"
+    }
+  }
+}
+
 variable "disk_size" {
   type    = string
   default = "61440"
@@ -56,7 +71,7 @@ build {
       <<-EOF
       $p = 'c:/packer.delete.me.to.end.test.wait.txt'
       Set-Content $p 'delete this file to end the packer test wait'
-      Write-Host "ATTENTION To end this test wait, login into the machine and delete the $p file"
+      Write-Host "ATTENTION To end this test wait, login into the machine and delete the $p file. Or just press Ctrl+C."
       while (Test-Path $p) {
         Start-Sleep -Seconds 5
       }
