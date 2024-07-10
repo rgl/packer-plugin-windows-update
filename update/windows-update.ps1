@@ -187,8 +187,12 @@ while ($true) {
 $rebootRequired = $false
 for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $update = $searchResult.Updates.Item($i)
-    $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
-    $updateSize = ($update.MaxDownloadSize/1024/1024).ToString('0.##')
+    if (!$update) {
+        continue
+    }
+    $updateMaxDownloadSize = try { [int64]$update.MaxDownloadSize } catch { [int64]0 }
+    $updateDate = try { $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd') } catch { '1970-01-01' }
+    $updateSize = ($updateMaxDownloadSize/1024/1024).ToString('0.##')
     $updateTitle = $update.Title
     $updateSummary = "Windows update ($updateDate; $updateSize MB): $updateTitle"
 
@@ -210,7 +214,7 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
 
     $update.AcceptEula() | Out-Null
 
-    $updatesToDownloadSize += $update.MaxDownloadSize
+    $updatesToDownloadSize += $updateMaxDownloadSize
     $updatesToDownload.Add($update) | Out-Null
 
     $updatesToInstall.Add($update) | Out-Null
