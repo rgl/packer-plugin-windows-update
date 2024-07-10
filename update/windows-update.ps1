@@ -187,7 +187,7 @@ while ($true) {
 $rebootRequired = $false
 for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $update = $searchResult.Updates.Item($i)
-    $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
+    $updateDate = try { $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd') } catch { [string](get-date -Format 'yyyy-MM-dd') }
     $updateSize = ($update.MaxDownloadSize/1024/1024).ToString('0.##')
     $updateTitle = $update.Title
     $updateSummary = "Windows update ($updateDate; $updateSize MB): $updateTitle"
