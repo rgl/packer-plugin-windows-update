@@ -201,7 +201,8 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
         continue
     }
 
-    if ($update.InstallationBehavior.CanRequestUserInput) {
+    $updateCanRequestUserInput = try { $update.InstallationBehavior.CanRequestUserInput } catch { $false }
+    if ($updateCanRequestUserInput) {
         Write-Output "Warning The update '$updateTitle' has the CanRequestUserInput flag set (if the install hangs, you might need to exclude it with the filter 'exclude:`$_.InstallationBehavior.CanRequestUserInput' or 'exclude:`$_.Title -like '*$updateTitle*'')"
     }
 
