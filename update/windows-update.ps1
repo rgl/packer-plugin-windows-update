@@ -190,10 +190,15 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     if (!$update) {
         continue
     }
+
+    $updateTitle = $update.Title
+    if (!$updateTitle) {
+        continue
+    }
+
     $updateMaxDownloadSize = try { [int64]$update.MaxDownloadSize } catch { [int64]0 }
     $updateDate = try { $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd') } catch { '1970-01-01' }
     $updateSize = ($updateMaxDownloadSize/1024/1024).ToString('0.##')
-    $updateTitle = $update.Title
     $updateSummary = "Windows update ($updateDate; $updateSize MB): $updateTitle"
 
     if (!(Test-IncludeUpdate $updateFilters $update)) {
