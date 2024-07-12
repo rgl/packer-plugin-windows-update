@@ -187,17 +187,26 @@ while ($true) {
 $rebootRequired = $false
 for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $update = $searchResult.Updates.Item($i)
-    if (!$update) {
-        continue
+
+    # crash when the windows update api returns an invalid update object.
+    # see https://github.com/rgl/packer-plugin-windows-update/issues/144
+    $expectedProperties = @(
+        'Title'
+        'MaxDownloadSize'
+        'LastDeploymentChangeTime'
+        'InstallationBehavior'
+        'AcceptEula'
+    )
+    $properties = $update `
+        | Get-Member $expectedProperties `
+        | Select-Object -ExpandProperty Name
+    if (Compare-Object $expectedProperties $properties) {
+        throw "the windows update api returned a invalid update object. see https://github.com/rgl/packer-plugin-windows-update/issues/144."
     }
 
     $updateTitle = $update.Title
-    if (!$updateTitle) {
-        continue
-    }
-
-    $updateMaxDownloadSize = try { [int64]$update.MaxDownloadSize } catch { [int64]0 }
-    $updateDate = try { $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd') } catch { '1970-01-01' }
+    $updateMaxDownloadSize = $update.MaxDownloadSize
+    $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
     $updateSize = ($updateMaxDownloadSize/1024/1024).ToString('0.##')
     $updateSummary = "Windows update ($updateDate; $updateSize MB): $updateTitle"
 
@@ -206,8 +215,7 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
         continue
     }
 
-    $updateCanRequestUserInput = try { $update.InstallationBehavior.CanRequestUserInput } catch { $false }
-    if ($updateCanRequestUserInput) {
+    if ($update.InstallationBehavior.CanRequestUserInput) {
         Write-Output "Warning The update '$updateTitle' has the CanRequestUserInput flag set (if the install hangs, you might need to exclude it with the filter 'exclude:`$_.InstallationBehavior.CanRequestUserInput' or 'exclude:`$_.Title -like '*$updateTitle*'')"
     }
 

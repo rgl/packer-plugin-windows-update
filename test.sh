@@ -25,6 +25,7 @@ export PACKER_LOG_PATH=test.log
 export PACKER_CONFIG_DIR="$PWD/dist/test"
 export PACKER_PLUGIN_PATH="$PWD/dist/test/plugins"
 export PKR_VAR_disk_image=~/.vagrant.d/boxes/windows-2022-amd64/0.0.0/libvirt/box_0.img
+#export PKR_VAR_disk_image=~/.vagrant.d/boxes/windows-11-23h2-amd64/0.0.0/libvirt/box_0.img
 
 packer init -only=qemu.test test.pkr.hcl
 packer build -only=qemu.test -on-error=abort test.pkr.hcl
