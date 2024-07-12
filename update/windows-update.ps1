@@ -200,7 +200,7 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $properties = $update `
         | Get-Member $expectedProperties `
         | Select-Object -ExpandProperty Name
-    if (Compare-Object $expectedProperties $properties) {
+    if (!$properties -or (Compare-Object $expectedProperties $properties)) {
         throw "the windows update api returned a invalid update object. see https://github.com/rgl/packer-plugin-windows-update/issues/144."
     }
 
