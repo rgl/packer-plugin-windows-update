@@ -138,6 +138,29 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
     }
 }
 
+# try to repair the windows update settings to work in non-preview mode.
+# see https://github.com/rgl/packer-plugin-windows-update/issues/144
+# see https://learn.microsoft.com/en-sg/answers/questions/1791668/powershell-command-outputting-system-comobject-on
+function Repair-WindowsUpdate {
+    $settingsPath = 'C:\ProgramData\Microsoft\Windows\OneSettings\UusSettings.json'
+    if (!(Test-Path $settingsPath)) {
+        throw 'the windows update api is in an invalid state. see https://github.com/rgl/packer-plugin-windows-update/issues/144.'
+    }
+    $version = (New-Object -ComObject Microsoft.Update.AgentInfo).GetInfo('ProductVersionString')
+    $settings = Get-Content -Raw $settingsPath | ConvertFrom-Json
+    if ($settings.settings.EXCLUSIONS -notcontains $version) {
+        $settings.settings.EXCLUSIONS += $version
+        Write-Output 'Repairing the windows update settings to work in non-preview mode...'
+        Copy-Item $settingsPath "$settingsPath.backup.json" -Force
+        [System.IO.File]::WriteAllText(
+            $settingsPath,
+            ($settings | ConvertTo-Json -Compress -Depth 100),
+            (New-Object System.Text.UTF8Encoding $false))
+    }
+    Write-Output 'Restarting the machine to retry a new windows update round...'
+    ExitWithCode 101
+}
+
 ExitWhenRebootRequired
 
 if ($OnlyCheckForRebootRequired) {
@@ -188,7 +211,8 @@ $rebootRequired = $false
 for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     $update = $searchResult.Updates.Item($i)
 
-    # crash when the windows update api returns an invalid update object.
+    # when the windows update api returns an invalid update object, repair
+    # windows update and signal a reboot to try again.
     # see https://github.com/rgl/packer-plugin-windows-update/issues/144
     $expectedProperties = @(
         'Title'
@@ -201,7 +225,7 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
         | Get-Member $expectedProperties `
         | Select-Object -ExpandProperty Name
     if (!$properties -or (Compare-Object $expectedProperties $properties)) {
-        throw "the windows update api returned a invalid update object. see https://github.com/rgl/packer-plugin-windows-update/issues/144."
+        Repair-WindowsUpdate
     }
 
     $updateTitle = $update.Title

@@ -14,8 +14,8 @@ Configure your packer template to require a [release version of the plugin](http
 packer {
   required_plugins {
     windows-update = {
-      version = "0.16.5"
-      source = "github.com/rgl/windows-update"
+      version = "0.16.7"
+      source  = "github.com/rgl/windows-update"
     }
   }
 }
