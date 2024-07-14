@@ -214,6 +214,8 @@ for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
     # when the windows update api returns an invalid update object, repair
     # windows update and signal a reboot to try again.
     # see https://github.com/rgl/packer-plugin-windows-update/issues/144
+    # see The June 2024 preview update might impact applications using Windows Update APIs
+    #     https://learn.microsoft.com/en-us/windows/release-health/status-windows-11-23h2#3351msgdesc
     $expectedProperties = @(
         'Title'
         'MaxDownloadSize'
