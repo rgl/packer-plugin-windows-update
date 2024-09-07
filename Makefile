@@ -9,7 +9,7 @@ PLUGIN_PATH := dist/packer-plugin-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)_$(GOH
 
 # see https://github.com/goreleaser/goreleaser
 # renovate: datasource=github-releases depName=goreleaser/goreleaser extractVersion=^v?(?<version>1\..+)
-GORELEASER_VERSION := 1.26.2
+GORELEASER_VERSION := 2.2.0
 
 all: build
 
@@ -17,7 +17,7 @@ init:
 	go mod download
 
 $(GORELEASER):
-	go install github.com/goreleaser/goreleaser@v$(GORELEASER_VERSION)
+	go install github.com/goreleaser/goreleaser/v2@v$(GORELEASER_VERSION)
 
 build: init $(GORELEASER) $(SOURCE_FILES)
 	API_VERSION="$(shell go run . describe 2>/dev/null | jq -r .api_version)" \

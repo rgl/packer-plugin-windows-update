@@ -1,3 +1,4 @@
+version: 2
 builds:
   - env:
       - CGO_ENABLED=0
@@ -26,7 +27,7 @@ changelog:
       - '^docs:'
       - '^test:'
 snapshot:
-  name_template: '{{ .Version }}-SNAPSHOT-{{ .ShortCommit }}'
+  version_template: '{{ .Version }}-SNAPSHOT-{{ .ShortCommit }}'
 release:
   draft: true
   prerelease: auto
