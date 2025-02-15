@@ -9,7 +9,7 @@ PLUGIN_PATH := dist/packer-plugin-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)_$(GOH
 
 # see https://github.com/goreleaser/goreleaser
 # renovate: datasource=github-releases depName=goreleaser/goreleaser extractVersion=^v?(?<version>1\..+)
-GORELEASER_VERSION := 2.2.0
+GORELEASER_VERSION := 2.7.0
 
 all: build
 
