@@ -11,7 +11,7 @@ PLUGIN_PATH := dist/packer-plugin-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)_$(GOH
 # renovate: datasource=github-releases depName=goreleaser/goreleaser extractVersion=^v?(?<version>1\..+)
 GORELEASER_VERSION := 2.7.0
 
-all: build
+all: clean build
 
 init:
 	go mod download
@@ -37,7 +37,7 @@ update/provisioner.hcl2spec.go: update/provisioner.go
 	go generate ./...
 
 clean:
-	rm -rf dist tmp* output-test *.log
+	rm -rf update/provisioner.hcl2spec.go dist tmp* output-test *.log
 
 test: build
 	./test.sh

@@ -1,0 +1,31 @@
+{
+  "name": "Packer",
+  "dockerFile": "Dockerfile",
+  "context": "..",
+  "runArgs": [
+    "--group-add=108", // 108 is the id of the kvm group.
+    "-v=${localEnv:HOME}/.ssh/id_rsa:/home/vscode/.ssh/id_rsa:ro",
+    "-v=${localEnv:HOME}/.ssh/id_rsa.pub:/home/vscode/.ssh/id_rsa.pub:ro",
+    "-v=${localEnv:HOME}/.vagrant.d:/home/vscode/.vagrant.d:ro",
+    "--device=/dev/kvm"
+  ],
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "features": {
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.23.6"
+    },
+    "ghcr.io/devcontainers-extra/features/packer-asdf:2": {
+      "version": "1.12.0"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "hashicorp.hcl",
+        "ms-python.black-formatter",
+        "ms-python.python",
+        "streetsidesoftware.code-spell-checker"
+      ]
+    }
+  }
+}

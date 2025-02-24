@@ -92,13 +92,22 @@ Inside an expression, the Windows Update [IUpdate interface](https://msdn.micros
 
 # Development
 
+Install the dependencies:
+
+* [Docker](https://docs.docker.com/engine/install/).
+* [Visual Studio Code](https://code.visualstudio.com).
+* [Dev Container plugin](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+* [`windows-2022-amd64` vagrant box](https://github.com/rgl/windows-vagrant).
+
+Open this directory with the Dev Container plugin.
+
+Open `bash` inside the Visual Studio Code Terminal.
+
 Build:
 
 ```bash
 make
 ```
-
-Install the [rgl/windows-vagrant](https://github.com/rgl/windows-vagrant) vagrant box.
 
 Test with QEMU:
 

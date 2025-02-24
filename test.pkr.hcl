@@ -23,7 +23,7 @@ variable "disk_image" {
 }
 
 source "qemu" "test" {
-  headless     = false
+  headless     = true
   accelerator  = "kvm"
   machine_type = "q35"
   cpus         = 2

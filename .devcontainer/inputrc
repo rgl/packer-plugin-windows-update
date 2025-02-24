@@ -1,0 +1,9 @@
+set input-meta on
+set output-meta on
+set show-all-if-ambiguous on
+set completion-ignore-case on
+
+"\e[A": history-search-backward
+"\e[B": history-search-forward
+"\eOD": backward-word
+"\eOC": forward-word
