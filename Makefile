@@ -8,8 +8,8 @@ SOURCE_FILES := *.go update/* update/provisioner.hcl2spec.go
 PLUGIN_PATH := dist/packer-plugin-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)_$(GOHOSTARCHVERSION)/packer-plugin-windows-update_*_$(GOHOSTOS)_$(GOHOSTARCH)$(GOEXE)
 
 # see https://github.com/goreleaser/goreleaser
-# renovate: datasource=github-releases depName=goreleaser/goreleaser extractVersion=^v?(?<version>1\..+)
-GORELEASER_VERSION := 2.7.0
+# renovate: datasource=github-releases depName=goreleaser/goreleaser extractVersion=^v?(?<version>2\..+)
+GORELEASER_VERSION := 2.8.2
 
 all: clean build
 
