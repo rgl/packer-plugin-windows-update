@@ -29,6 +29,7 @@ source "qemu" "test" {
   cpus         = 2
   memory       = 4096
   qemuargs = [
+    strcontains(var.disk_image, "uefi") ? ["-bios", "/usr/share/ovmf/OVMF.fd"] : null,
     ["-cpu", "host"],
     ["-device", "qemu-xhci"],
     ["-device", "virtio-tablet"],

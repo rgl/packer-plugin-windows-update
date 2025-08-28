@@ -7,6 +7,7 @@
     "-v=${localEnv:HOME}/.ssh/id_rsa:/home/vscode/.ssh/id_rsa:ro",
     "-v=${localEnv:HOME}/.ssh/id_rsa.pub:/home/vscode/.ssh/id_rsa.pub:ro",
     "-v=${localEnv:HOME}/.vagrant.d:/home/vscode/.vagrant.d:ro",
+    "-v=/usr/share/ovmf:/usr/share/ovmf:ro",
     "--device=/dev/kvm"
   ],
   "postCreateCommand": "bash .devcontainer/setup.sh",
