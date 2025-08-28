@@ -12,18 +12,16 @@
   "postCreateCommand": "bash .devcontainer/setup.sh",
   "features": {
     "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.24.2"
+      "version": "1.25.0"
     },
     "ghcr.io/devcontainers-extra/features/packer-asdf:2": {
-      "version": "1.12.0"
+      "version": "1.14.1"
     }
   },
   "customizations": {
     "vscode": {
       "extensions": [
         "hashicorp.hcl",
-        "ms-python.black-formatter",
-        "ms-python.python",
         "streetsidesoftware.code-spell-checker"
       ]
     }
