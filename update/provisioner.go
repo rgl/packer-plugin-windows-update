@@ -204,12 +204,16 @@ func (p *Provisioner) update(ctx context.Context, ui packer.Ui, comm packer.Comm
 		RetryDelay: func() time.Duration { return retryableDelay },
 		Tries:      p.config.UpdateMaxRetries,
 	}.Run(ctx, func(ctx context.Context) error {
+		ui := NewUpdateUi(ui)
 		cmd := &packer.RemoteCmd{Command: elevatedCommand}
 		err := cmd.RunWithUi(ctx, comm, ui)
 		if err != nil {
 			return err
 		}
 		var exitStatus = cmd.ExitStatus()
+		if !ui.finished {
+			return fmt.Errorf("Windows update script did not finish")
+		}
 		switch exitStatus {
 		case 0:
 			return nil
@@ -380,5 +384,5 @@ func escapePowerShellString(value string) string {
 	return fmt.Sprintf(
 		"'%s'",
 		// escape single quotes with another single quote.
-		strings.Replace(value, "'", "''", -1))
+		strings.ReplaceAll(value, "'", "''"))
 }

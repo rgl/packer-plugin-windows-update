@@ -35,6 +35,7 @@ $mock = $false
 
 function ExitWithCode($exitCode) {
     $host.SetShouldExit($exitCode)
+    Write-Output "Exiting with code $exitCode"
     Exit
 }
 
@@ -314,3 +315,5 @@ if ($updatesToInstall.Count) {
     ExitWhenRebootRequired $rebootRequired
     Write-Output 'No Windows updates found'
 }
+
+ExitWithCode 0
