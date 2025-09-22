@@ -273,19 +273,23 @@ func (p *Provisioner) restart(ctx context.Context, ui packer.Ui, comm packer.Com
 
 		ui.Say("Checking for pending restart...")
 		err = p.retryable(ctx, func(ctx context.Context) error {
+			ui := NewUpdateUi(ui)
 			cmd := &packer.RemoteCmd{Command: pendingRebootElevatedCommand}
 			err = cmd.RunWithUi(ctx, comm, ui)
 			if err != nil {
 				return err
 			}
+			if !ui.finished {
+				return fmt.Errorf("Windows update script did not finish")
+			}
 
 			exitStatus := cmd.ExitStatus()
-			switch {
-			case exitStatus == 0:
+			switch exitStatus {
+			case 0:
 				restartPending = false
-			case exitStatus == 101:
+			case 101:
 				restartPending = true
-			case exitStatus == 2147942501: //windows 2012
+			case 2147942501: //windows 2012
 				restartPending = true
 			default:
 				return fmt.Errorf("Machine not yet available (exit status %d)", exitStatus)
