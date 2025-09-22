@@ -1,10 +1,10 @@
 module github.com/rgl/packer-plugin-windows-update
 
-go 1.25.0
+go 1.25.1
 
 require (
 	github.com/hashicorp/hcl/v2 v2.24.0
-	github.com/hashicorp/packer-plugin-sdk v0.6.2
+	github.com/hashicorp/packer-plugin-sdk v0.6.3
 	github.com/zclconf/go-cty v1.16.4
 )
 
