@@ -134,7 +134,7 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
 
     if ($rebootRequired) {
         Write-Output 'Waiting for the Windows Modules Installer to exit...'
-        Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0}
+        Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0 -or (New-Object -ComObject Microsoft.Update.Session).CreateUpdateInstaller().IsBusy -eq $false}
         ExitWithCode 101
     }
 }
@@ -317,3 +317,4 @@ if ($updatesToInstall.Count) {
 }
 
 ExitWithCode 0
+
