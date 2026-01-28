@@ -31,6 +31,10 @@ param(
     [switch]$OnlyCheckForRebootRequired = $false
 )
 
+# Attempt to install the join module, which will be used later on
+if(!(Get-Module -ListAvailable JoinModule)) { Find-Module -Name JoinModule | Install-Module -Force }
+Get-Module -ListAvailable JoinModule | Import-Module -Force
+
 $mock = $false
 
 function ExitWithCode($exitCode) {
@@ -134,9 +138,148 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
 
     if ($rebootRequired) {
         Write-Output 'Waiting for the Windows Modules Installer to exit...'
-        Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0 -or (New-Object -ComObject Microsoft.Update.Session).CreateUpdateInstaller().IsBusy -eq $false}
+        Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0 -or (UpdatesComplete)}
         ExitWithCode 101
     }
+}
+
+# Using eventvwr, search system logs for WindowsUpdateClient source.  Return the status of the KBArticles in the array
+# to determine if they are completed or not.  If completed, return true.  If not  complted, return false.
+function UpdatesComplete {
+    param(
+        [string[]]$kbarticles
+    )
+
+    # Search the event log
+    $event_kb_logs = Get-EventLog -LogName System -Source Microsoft-Windows-WindowsUpdateClient |
+                        Where-Object { $_.ReplacementStrings[0] -match 'KB\d+' } |
+                        Group-Object { if ($_.ReplacementStrings[0] -match 'KB\d+') { $matches[0] } } |
+                        ForEach-Object {
+                            $latest = $_.Group | Sort-Object TimeGenerated -Descending | Select-Object -First 1
+                            switch -regex ($latest.Message)
+                            {
+                                "Downloading"
+                                {
+                                    $status = "Downloading"
+                                    break
+                                }
+                                "^Installation Started:"
+                                {
+                                    $status = "Installing"
+                                    break
+                                }
+                                "^Installation Successful:"
+                                {
+                                    $status = "Installed"
+                                    break
+                                }
+                            }
+                            [PSCustomObject]@{
+                                ArticleID     = $_.Name   # e.g., KB5021234
+                                EventTimeGenerated = $latest.TimeGenerated
+                                EventID       = $latest.EventID
+                                EventStatus        = $status
+                                EventMessage       = $latest.Message
+                                EventRecord        = $latest
+                            }
+                        }
+
+    # Search the CBS logs for additional patch details
+    if(Test-Path -Path "$env:WINDIR\Logs\CBS\CBS.log" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue)
+    {
+        $cbs_log_messages = Get-Item -Path "$env:WINDIR\Logs\CBS\CBS.log"
+        if($null -ne $cbs_log_messages)
+        {
+            # Regex matches
+            $ArticleIDMatch = "Identifier:\s*(KB\d+)"
+            $StepMatch = "Exec:\s*([^\.]+). "
+            $PackageMatch = "Package:\s*(.+), "
+            $TimestampMatch = "(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}), "
+            $Results = "\[HRESULT\s*=\s*([\dx]+)\s*-\s*(.*)]"
+            
+            # Search $cbs_log_messages for "Identifier: KB"
+            $cbs_kb_logs = $cbs_log_messages |  Select-String -Pattern $ArticleIDMatch |
+                                                Foreach-Object {
+                                                    if($_ -match $ArticleIDMatch) { $ArticleID = $Matches[1] }
+                                                    if($_ -match $StepMatch)      { $Message = $Matches[1] }
+                                                    if($_ -match $PackageMatch)   { $Package = $Matches[1] }
+                                                    if($_ -match $TimestampMatch) { $Timestamp = $Matches[1]}
+                                                    if($_ -match $Results)        { $ReturnCode = $Matches[1]; $ReturnMessage = $Matches[2]}
+                                                    $Record = $_ -replace "                  ",""
+                                                    
+                                                    [PSCustomObject]@{
+                                                        ArticleID        = $ArticleID
+                                                        CBSPackage       = $Package
+                                                        CBSMessage       = $Step
+                                                        CBSResultCode    = $ReturnCode
+                                                        CBSResultMessage = $ReturnMessage
+                                                        CBSTimeGenerated = $Timestamp
+                                                        CBSRecord        = $Record
+                                                    } 
+                                                } |
+                                                Group-Object ArticleID |
+                                                Foreach-Object {
+                                                    $_.Group | Sort-Object CBSTimeGenerated -Descending | Select -First 1
+                                                }                                            
+        }
+    }
+
+    # If the CBS KB Logs and the Event log KB Logs are populated, join them to find an overall status.
+    # Otherwise, just use either the event or cbs logs
+    if($null -ne $cbs_kb_logs -and $null -ne $event_kb_logs)
+    {
+        $windows_updates = Join-Object -LeftObject $event_kb_logs -RightObject $cbs_kb_logs -On ArticleId -JoinType Full
+    }
+    elseif($null -ne $event_kb_logs)
+    {
+        $windows_updates = $event_kb_logs
+    }
+    elseif($null -ne $cbs_kb_logs)
+    {
+        $windows_updates = $cbs_kb_logs
+    }
+
+    # Loop through the logs to determine the overall status
+    foreach($windows_update in $windows_updates)
+    {
+        if($windows_update.EventStatus -eq "Installed" -or $windows_update.CBSStatusCode -eq "0x00000000")
+        {
+            $overall_status = "Installed"
+        }
+        elseif(![string]::IsNullOrEmpty($windows_update.EventStatus))
+        {
+            $overall_status = $windows_update.EventStatus
+        }
+        elseif(![string]::IsNullOrEmpty($windows_update.CBSStatusMessage))
+        {
+            if($windows_update.CBSMessage -eq "Processing Complete")
+            {
+                $overall_status = "Installed"
+            }
+            else 
+            {
+                $overall_status = $windows_update.CBSStatusMessage
+            }
+        }
+
+        # Add the overall status to the object
+        $windows_update | Add-Member -MemberType NoteProperty -Name Status -Value $overall_status
+    }
+
+    # Determine if there are updates and set true/false
+    if($null -ne $kbarticles -and $kbarticles.Count -gt 0)
+    {
+        $blnReturn = $null -eq ($kbarticles | Where-Object { $_ -in $windows_updates.ArticleID } |
+                        ForEach-Object { $kb = $_; $windows_updates | Where-Object { $_.ArticleID -eq $kb } } |
+                        Where-Object { $_.Status -ne "Installed"} )
+
+    }
+    else
+    {
+        $blnReturn = $null -eq ($windows_updates | Where-Object {$_.Status -ne "Installed"})
+    }
+
+    return $blnReturn
 }
 
 # try to repair the windows update settings to work in non-preview mode.
@@ -317,4 +460,3 @@ if ($updatesToInstall.Count) {
 }
 
 ExitWithCode 0
-
