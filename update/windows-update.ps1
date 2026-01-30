@@ -90,7 +90,7 @@ function Wait-Condition {
       [int]$DebounceSeconds=15
     )
     process {
-        $begin = [Windows]::GetUptime()
+        $begin = Get-Date
         do {
             Start-Sleep -Seconds 1
             try {
@@ -99,10 +99,10 @@ function Wait-Condition {
               $result = $false
             }
             if (-not $result) {
-                $begin = [Windows]::GetUptime()
+                $begin = Get-Date
                 continue
             }
-        } while ((([Windows]::GetUptime()) - $begin).TotalSeconds -lt $DebounceSeconds)
+        } while (((Get-Date) - $begin).TotalSeconds -lt $DebounceSeconds)
     }
 }
 
@@ -145,32 +145,44 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
 
 # Using eventvwr, search system logs for WindowsUpdateClient source.  Return the status of the KBArticles in the array
 # to determine if they are completed or not.  If completed, return true.  If not  complted, return false.
-function UpdatesComplete {
-    param(
-        [string[]]$kbarticles
-    )
+function UpdatesComplete
+{
+    # Search pattern for extracting exit code
+    $EventLogExitCodePattern = "0x[0-9A-Fa-f]+"
 
+    
     # Search the event log
     $event_kb_logs = Get-EventLog -LogName System -Source Microsoft-Windows-WindowsUpdateClient |
-                        Where-Object { $_.ReplacementStrings[0] -match 'KB\d+' } |
-                        Group-Object { if ($_.ReplacementStrings[0] -match 'KB\d+') { $matches[0] } } |
+                        Where-Object { $_.Message -match 'KB\d+' } |
+                        Group-Object { if ($_.Message -match 'KB\d+') { $matches[0] } } |
                         ForEach-Object {
                             $latest = $_.Group | Sort-Object TimeGenerated -Descending | Select-Object -First 1
+                            $event_return_code = ""
+                            $completion_status = $false
+                            $return_code = $latest.Message -match $EventLogExitCodePattern
+                            if($return_code) { $event_return_code = $matches[0] }
                             switch -regex ($latest.Message)
                             {
                                 "Downloading"
                                 {
-                                    $status = "Downloading"
+                                    $install_status = "Downloading"
                                     break
                                 }
                                 "^Installation Started:"
                                 {
-                                    $status = "Installing"
+                                    $install_status = "Installing"
                                     break
                                 }
                                 "^Installation Successful:"
                                 {
-                                    $status = "Installed"
+                                    $install_status = "Installed"
+                                    $completion_status = $true
+                                    break
+                                }
+                                "^Installation Failure:"
+                                {
+                                    $install_status = "Failed"
+                                    $completion_status = $true
                                     break
                                 }
                             }
@@ -178,7 +190,9 @@ function UpdatesComplete {
                                 ArticleID     = $_.Name   # e.g., KB5021234
                                 EventTimeGenerated = $latest.TimeGenerated
                                 EventID       = $latest.EventID
-                                EventStatus        = $status
+                                EventResultCode = $event_return_code
+                                EventInstallComplete      = $completion_status
+                                EventInstallStatus        = $install_status
                                 EventMessage       = $latest.Message
                                 EventRecord        = $latest
                             }
@@ -242,44 +256,51 @@ function UpdatesComplete {
     # Loop through the logs to determine the overall status
     foreach($windows_update in $windows_updates)
     {
-        if($windows_update.EventStatus -eq "Installed" -or $windows_update.CBSStatusCode -eq "0x00000000")
+        # If the event install has completed, mark the overall completion status
+        if($windows_update.EventInstallComplete) { $overall_completion_status = $true } else {$overall_completion_status = $false }
+
+        # If the event install status is installed OR the CBS status code is success, then mark the overall status as installed
+        if($windows_update.EventInstallStatus -eq "Installed" -or $windows_update.CBSStatusCode -eq "0x00000000")
         {
-            $overall_status = "Installed"
+            $overall_install_status = "Installed"
         }
-        elseif(![string]::IsNullOrEmpty($windows_update.EventStatus))
+        elseif(![string]::IsNullOrEmpty($windows_update.EventInstallStatus))
         {
-            $overall_status = $windows_update.EventStatus
+            # Fallback to using the install status from the event log if it's availiable
+            $overall_install_status = $windows_update.EventInstallStatus
         }
         elseif(![string]::IsNullOrEmpty($windows_update.CBSStatusMessage))
         {
+            # Fallback to using the CBS log install status if it's availiable
             if($windows_update.CBSMessage -eq "Processing Complete")
             {
-                $overall_status = "Installed"
+                $overall_install_status = "Installed"
             }
             else 
             {
-                $overall_status = $windows_update.CBSStatusMessage
+                $overall_install_status = $windows_update.CBSStatusMessage
             }
         }
 
-        # Add the overall status to the object
-        $windows_update | Add-Member -MemberType NoteProperty -Name Status -Value $overall_status
+        # Add the overall status properties to the object
+        $windows_update | Add-Member -MemberType NoteProperty -Name InstallStatus -Value $overall_install_status
+        $windows_update | Add-Member -MemberType NoteProperty -Name Completed -Value $overall_completion_status
     }
 
-    # Determine if there are updates and set true/false
+    # Determine if there are updates left and set true/false for a return
     if($null -ne $kbarticles -and $kbarticles.Count -gt 0)
     {
         $blnReturn = $null -eq ($kbarticles | Where-Object { $_ -in $windows_updates.ArticleID } |
                         ForEach-Object { $kb = $_; $windows_updates | Where-Object { $_.ArticleID -eq $kb } } |
-                        Where-Object { $_.Status -ne "Installed"} )
+                        Where-Object { $_.Completed -ne $true } )
 
     }
     else
     {
-        $blnReturn = $null -eq ($windows_updates | Where-Object {$_.Status -ne "Installed"})
+        $blnReturn = $null -eq ($windows_updates | Where-Object { $_.Completed -ne $true })
     }
 
-    return $blnReturn
+    $blnReturn
 }
 
 # try to repair the windows update settings to work in non-preview mode.
