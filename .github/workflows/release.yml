@@ -23,13 +23,13 @@ jobs:
 
       - name: Build Windows plugin
         run: |
-          GOOS=windows GOARCH=amd64 go build -o packer-plugin-windows-update.exe
-          zip packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_windows_amd64.zip packer-plugin-windows-update.exe
+          GOOS=windows GOARCH=amd64 go build -o packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_windows_amd64.exe
+          zip packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_windows_amd64.zip packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_windows_amd64.exe
 
       - name: Build Linux plugin
         run: |
-          GOOS=linux GOARCH=amd64 go build -o packer-plugin-windows-update
-          zip packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_linux_amd64.zip packer-plugin-windows-update
+          GOOS=linux GOARCH=amd64 go build -o packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_linux_amd64
+          zip packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_linux_amd64.zip packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_linux_amd64
 
       - name: Generate SHA256SUMS
         run: |
@@ -37,6 +37,13 @@ jobs:
           > packer-plugin-windows-update_${GITHUB_REF_NAME}_SHA256SUMS
           sha256sum packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_linux_amd64.zip \
           >> packer-plugin-windows-update_${GITHUB_REF_NAME}_SHA256SUMS
+
+      - name: List release artifacts
+        run: |
+          echo "=== Files to upload ==="
+          ls -la packer-plugin-windows-update_*
+          echo "=== SHA256SUMS content ==="
+          cat packer-plugin-windows-update_${GITHUB_REF_NAME}_SHA256SUMS
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
