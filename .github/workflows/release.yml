@@ -21,19 +21,22 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Build plugins
+      - name: Build Windows plugin
         run: |
-          # Windows
           GOOS=windows GOARCH=amd64 go build -o packer-plugin-windows-update.exe
           zip packer-plugin-windows-update_${GITHUB_REF_NAME}_x5_windows_amd64.zip packer-plugin-windows-update.exe
 
-          # Linux
+      - name: Build Linux plugin
+        run: |
           GOOS=linux GOARCH=amd64 go build -o packer-plugin-windows-update
           zip packer-plugin-windows-update_${GITHUB_REF_NAME}_x5_linux_amd64.zip packer-plugin-windows-update
 
       - name: Generate SHA256SUMS
         run: |
-          sha256sum *.zip > packer-plugin-windows-update_${GITHUB_REF_NAME}_SHA256SUMS
+          sha256sum packer-plugin-windows-update_${GITHUB_REF_NAME}_x5_windows_amd64.zip \
+          > packer-plugin-windows-update_${GITHUB_REF_NAME}_SHA256SUMS
+          sha256sum packer-plugin-windows-update_${GITHUB_REF_NAME}_x5_linux_amd64.zip \
+          >> packer-plugin-windows-update_${GITHUB_REF_NAME}_SHA256SUMS
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -42,5 +45,6 @@ jobs:
         with:
           overwrite_files: true
           files: |
-            *.zip
-            *_SHA256SUMS
+            packer-plugin-windows-update_${GITHUB_REF_NAME}_x5_windows_amd64.zip
+            packer-plugin-windows-update_${GITHUB_REF_NAME}_x5_linux_amd64.zip
+            packer-plugin-windows-update_${GITHUB_REF_NAME}_SHA256SUMS
