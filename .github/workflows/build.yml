@@ -18,21 +18,14 @@ jobs:
         with:
           install: make tar zip unzip
           path-type: inherit
-      - name: Import GPG key
-        id: import_gpg
-        uses: crazy-max/ghaction-import-gpg@v6
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
         run: msys2 ./ci-release.sh
       - name: Archive
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts
+          name: packer-plugin-windows-update-${{ github.ref_name }}
           path: |
             dist/
             !dist/*/*
