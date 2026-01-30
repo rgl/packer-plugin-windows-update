@@ -23,12 +23,16 @@ jobs:
 
       - name: Build Windows plugin
         run: |
-          GOOS=windows GOARCH=amd64 go build -o packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_windows_amd64.exe
+          VERSION=${GITHUB_REF_NAME#v}
+          LDFLAGS="-X main.version=${VERSION} -X main.commit=${GITHUB_SHA} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_windows_amd64.exe
           zip packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_windows_amd64.zip packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_windows_amd64.exe
 
       - name: Build Linux plugin
         run: |
-          GOOS=linux GOARCH=amd64 go build -o packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_linux_amd64
+          VERSION=${GITHUB_REF_NAME#v}
+          LDFLAGS="-X main.version=${VERSION} -X main.commit=${GITHUB_SHA} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_linux_amd64
           zip packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_linux_amd64.zip packer-plugin-windows-update_${GITHUB_REF_NAME}_x5.0_linux_amd64
 
       - name: Generate SHA256SUMS
