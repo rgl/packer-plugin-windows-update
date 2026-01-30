@@ -36,3 +36,5 @@ jobs:
           files: |
             *.zip
             *_SHA256SUMS
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
