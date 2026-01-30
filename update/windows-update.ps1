@@ -268,9 +268,10 @@ function UpdatesComplete
         if($windows_update.EventInstallComplete) { $overall_completion_status = $true } else {$overall_completion_status = $false }
 
         # If the event install status is installed OR the CBS status code is success, then mark the overall status as installed
-        if($windows_update.EventInstallStatus -eq "Installed" -or $windows_update.CBSStatusCode -eq "0x00000000")
+        if($windows_update.EventInstallStatus -eq "Installed" -or $windows_update.CBSResultCode -eq "0x00000000")
         {
             $overall_install_status = "Installed"
+            $overall_completion_status = $true
         }
         elseif(![string]::IsNullOrEmpty($windows_update.EventInstallStatus))
         {
