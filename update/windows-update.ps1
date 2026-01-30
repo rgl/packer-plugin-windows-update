@@ -137,7 +137,7 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
     }
 
     if ($rebootRequired) {
-        Write-Output 'Waiting for the Windows Modules Installer to exit...'
+        Write-Output 'Waiting for the Windows Modules Installer to exit or updates to complete...'
         Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0 -or (UpdatesComplete)}
         ExitWithCode 101
     }
@@ -147,9 +147,10 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
 # to determine if they are completed or not.  If completed, return true.  If not  complted, return false.
 function UpdatesComplete
 {
+    Write-Output "Validating Windows Update status from event logs and CBS logs..."
+    
     # Search pattern for extracting exit code
     $EventLogExitCodePattern = "0x[0-9A-Fa-f]+"
-
     
     # Search the event log
     $event_kb_logs = Get-EventLog -LogName System -Source Microsoft-Windows-WindowsUpdateClient |
@@ -242,15 +243,22 @@ function UpdatesComplete
     # Otherwise, just use either the event or cbs logs
     if($null -ne $cbs_kb_logs -and $null -ne $event_kb_logs)
     {
+        Write-Output "Joining CBS and Event logs for Windows Update status..."
         $windows_updates = Join-Object -LeftObject $event_kb_logs -RightObject $cbs_kb_logs -On ArticleId -JoinType Full
     }
     elseif($null -ne $event_kb_logs)
     {
+        Write-Output "Using Event logs for Windows Update status..."
         $windows_updates = $event_kb_logs
     }
     elseif($null -ne $cbs_kb_logs)
     {
+        Write-Output "Using CBS logs for Windows Update status..."
         $windows_updates = $cbs_kb_logs
+    }
+    else 
+    {
+        Write-Output "No Additional Windows Update logs found, using just the logs from the session..."  
     }
 
     # Loop through the logs to determine the overall status
