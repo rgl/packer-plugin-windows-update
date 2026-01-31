@@ -144,9 +144,12 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
 }
 
 # Using eventvwr, search system logs for WindowsUpdateClient source.  Return the status of the KBArticles in the array
-# to determine if they are completed or not.  If completed, return true.  If not  complted, return false.
+# to determine if they are completed or not.  If completed, return true.  If not completed, return false.
 function UpdatesComplete
 {
+    param(
+        [string[]]$kbarticles = @()
+    )
     Write-Output "Validating Windows Update status from event logs and CBS logs..."
     
     # Search pattern for extracting exit code
@@ -211,6 +214,14 @@ function UpdatesComplete
             $PackageMatch = "Package:\s*(.+), "
             $TimestampMatch = "(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}), "
             $Results = "\[HRESULT\s*=\s*([\dx]+)\s*-\s*(.*)]"
+
+            # Empty the return strings for the CBS Logs
+            $ArticleID = ""
+            $Message = ""
+            $Package = ""
+            $Timestamp = ""
+            $ReturnCode = ""
+            $ReturnMessage = ""
             
             # Search $cbs_log_messages for "Identifier: KB"
             $cbs_kb_logs = $cbs_log_messages |  Select-String -Pattern $ArticleIDMatch |
@@ -225,7 +236,7 @@ function UpdatesComplete
                                                     [PSCustomObject]@{
                                                         ArticleID        = $ArticleID
                                                         CBSPackage       = $Package
-                                                        CBSMessage       = $Step
+                                                        CBSMessage       = $Message
                                                         CBSResultCode    = $ReturnCode
                                                         CBSResultMessage = $ReturnMessage
                                                         CBSTimeGenerated = $Timestamp
