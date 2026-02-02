@@ -63,6 +63,7 @@ build {
       "exclude:$_.Title -like '*Preview*'",
       "include:$true",
     ]
+    reboot_delay = 900
     update_limit = 25
   }
 }
@@ -71,6 +72,8 @@ build {
 **NB** For more information about the search criteria see the [IUpdateSearcher::Search method](https://docs.microsoft.com/en-us/windows/desktop/api/wuapi/nf-wuapi-iupdatesearcher-search) documentation and the [xWindowsUpdateAgent DSC resource source](https://github.com/PowerShell/xWindowsUpdate/blob/dev/DscResources/MSFT_xWindowsUpdateAgent/MSFT_xWindowsUpdateAgent.psm1).
 
 **NB** If the `update_limit` attribute is not declared, it defaults to `1000`.
+
+**NB** If the `reboot_delay` attribute is not declared, it defaults to `0`.  reboot_delay is in seconds.  It delays reboots after windows updates have completed.
 
 The general filter syntax is:
 
