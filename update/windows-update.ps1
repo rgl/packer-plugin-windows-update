@@ -163,8 +163,8 @@ function UpdatesComplete
     
     # Search the event log
     $event_kb_logs = Get-EventLog -LogName System -Source Microsoft-Windows-WindowsUpdateClient |
-                        Where-Object { $_.Message -match 'KB\d+' } |
-                        Group-Object { if ($_.Message -match 'KB\d+') { $matches[0] } } |
+                        Where-Object { $_.Message -match 'KB\d+' -or $_.ReplacementStrings -join ";" -match 'KB\d+' } |
+                        Group-Object { if ($_.Message -match 'KB\d+' -or $_.ReplacementStrings -join ";" -match 'KB\d+') { $matches[0] } } |
                         ForEach-Object {
                             $latest = $_.Group | Sort-Object TimeGenerated -Descending | Select-Object -First 1
                             $event_return_code = ""
