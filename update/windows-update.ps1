@@ -139,6 +139,11 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
     if ($rebootRequired) {
         Write-Output 'Waiting for the Windows Modules Installer to exit or updates to complete...'
         Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0 -or (UpdatesComplete)}
+        Write-Output 'The wait condition has been met, adding a delay so I can verify on the machine during testing...'
+
+        # 15 minutes delay to allow for any finalization of updates
+        Start-Sleep -Seconds 900
+
         ExitWithCode 101
     }
 }
@@ -295,6 +300,7 @@ function UpdatesComplete
             if($windows_update.CBSMessage -eq "Processing Complete")
             {
                 $overall_install_status = "Installed"
+                $overall_completion_status = $true
             }
             else 
             {
