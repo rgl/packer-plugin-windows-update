@@ -63,6 +63,10 @@ type Config struct {
 	// Adds a limit to how many updates are installed at a time
 	UpdateLimit int `mapstructure:"update_limit"`
 
+	// Adds the ability to delay the reboot command after updates are installed
+	// Default is 0 seconds
+	RebootDelay int `mapstructure:"reboot_delay"`
+
 	// Max times the provisioner will try install the updates
 	// in case of failure.
 	UpdateMaxRetries int `mapstructure:"update_max_retries"`
@@ -326,11 +330,12 @@ func (p *Provisioner) windowsUpdateCommand() string {
 		"PowerShell -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand %s",
 		base64.StdEncoding.EncodeToString(
 			encodeUtf16Le(fmt.Sprintf(
-				"%s%s%s -UpdateLimit %d",
+				"%s%s%s -UpdateLimit %d -RebootDelay %d",
 				windowsUpdatePath,
 				searchCriteriaArgument(p.config.SearchCriteria),
 				filtersArgument(p.config.Filters),
-				p.config.UpdateLimit))))
+				p.config.UpdateLimit,
+				p.config.RebootDelay))))
 }
 
 func (p *Provisioner) windowsUpdateCheckForRebootRequiredCommand() string {

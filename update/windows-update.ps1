@@ -28,6 +28,7 @@ param(
     [string]$SearchCriteria = 'BrowseOnly=0 and IsInstalled=0',
     [string[]]$Filters = @('include:$true'),
     [int]$UpdateLimit = 1000,
+    [int]$RebootDelay = 0,
     [switch]$OnlyCheckForRebootRequired = $false
 )
 
@@ -141,8 +142,8 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
         Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0 -or (UpdatesComplete)}
         Write-Output 'The wait condition has been met, adding a delay so I can verify on the machine during testing...'
 
-        # 15 minutes delay to allow for any finalization of updates
-        Start-Sleep -Seconds 900
+        # Added a delay so we can control reboot delays, mainly for testing
+        Start-Sleep -Seconds $RebootDelay
 
         ExitWithCode 101
     }
