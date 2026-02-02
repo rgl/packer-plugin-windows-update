@@ -197,7 +197,7 @@ function UpdatesComplete
                                 }
                             }
                             [PSCustomObject]@{
-                                ArticleID     = $_.Name   # e.g., KB5021234
+                                ArticleID     = $_.Name
                                 EventTimeGenerated = $latest.TimeGenerated
                                 EventID       = $latest.EventID
                                 EventResultCode = $event_return_code
@@ -508,3 +508,4 @@ if ($updatesToInstall.Count) {
 }
 
 ExitWithCode 0
+
