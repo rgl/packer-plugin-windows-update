@@ -123,10 +123,6 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 		p.config.UpdateMaxRetries = 5
 	}
 
-	if p.config.UseExtendedValidation == "" {
-		p.config.UseExtendedValidation = false
-	}
-
 	return errs
 }
 
