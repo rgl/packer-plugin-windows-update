@@ -141,10 +141,15 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
         Write-Output 'Waiting for the Windows Modules Installer to exit or updates to complete...'
         Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0 -or (UpdatesComplete)}
 
+        # If a reboot delay was requested, do that here
         if($null -ne $RebootDelay -and $RebootDelay != 0)
         {
             Write-Output 'The wait condition has been met, adding the requested delay of $RebootDelay seconds before exiting function...'
             Start-Sleep -Seconds $RebootDelay
+        }
+        else 
+        {
+            Write-Output 'The wait condition has been met.  Exiting function.'
         }
 
         ExitWithCode 101
