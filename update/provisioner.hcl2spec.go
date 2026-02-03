@@ -10,22 +10,23 @@ import (
 // FlatConfig is an auto-generated flat version of Config.
 // Where the contents of a field with a `mapstructure:,squash` tag are bubbled up.
 type FlatConfig struct {
-	PackerBuildName     *string           `mapstructure:"packer_build_name" cty:"packer_build_name" hcl:"packer_build_name"`
-	PackerBuilderType   *string           `mapstructure:"packer_builder_type" cty:"packer_builder_type" hcl:"packer_builder_type"`
-	PackerCoreVersion   *string           `mapstructure:"packer_core_version" cty:"packer_core_version" hcl:"packer_core_version"`
-	PackerDebug         *bool             `mapstructure:"packer_debug" cty:"packer_debug" hcl:"packer_debug"`
-	PackerForce         *bool             `mapstructure:"packer_force" cty:"packer_force" hcl:"packer_force"`
-	PackerOnError       *string           `mapstructure:"packer_on_error" cty:"packer_on_error" hcl:"packer_on_error"`
-	PackerUserVars      map[string]string `mapstructure:"packer_user_variables" cty:"packer_user_variables" hcl:"packer_user_variables"`
-	PackerSensitiveVars []string          `mapstructure:"packer_sensitive_variables" cty:"packer_sensitive_variables" hcl:"packer_sensitive_variables"`
-	RestartTimeout      *string           `mapstructure:"restart_timeout" cty:"restart_timeout" hcl:"restart_timeout"`
-	Username            *string           `mapstructure:"username" cty:"username" hcl:"username"`
-	Password            *string           `mapstructure:"password" cty:"password" hcl:"password"`
-	SearchCriteria      *string           `mapstructure:"search_criteria" cty:"search_criteria" hcl:"search_criteria"`
-	Filters             []string          `mapstructure:"filters" cty:"filters" hcl:"filters"`
-	UpdateLimit         *int              `mapstructure:"update_limit" cty:"update_limit" hcl:"update_limit"`
-	RebootDelay         *int              `mapstructure:"reboot_delay" cty:"reboot_delay" hcl:"reboot_delay"`
-	UpdateMaxRetries    *int              `mapstructure:"update_max_retries" cty:"update_max_retries" hcl:"update_max_retries"`
+	PackerBuildName       *string           `mapstructure:"packer_build_name" cty:"packer_build_name" hcl:"packer_build_name"`
+	PackerBuilderType     *string           `mapstructure:"packer_builder_type" cty:"packer_builder_type" hcl:"packer_builder_type"`
+	PackerCoreVersion     *string           `mapstructure:"packer_core_version" cty:"packer_core_version" hcl:"packer_core_version"`
+	PackerDebug           *bool             `mapstructure:"packer_debug" cty:"packer_debug" hcl:"packer_debug"`
+	PackerForce           *bool             `mapstructure:"packer_force" cty:"packer_force" hcl:"packer_force"`
+	PackerOnError         *string           `mapstructure:"packer_on_error" cty:"packer_on_error" hcl:"packer_on_error"`
+	PackerUserVars        map[string]string `mapstructure:"packer_user_variables" cty:"packer_user_variables" hcl:"packer_user_variables"`
+	PackerSensitiveVars   []string          `mapstructure:"packer_sensitive_variables" cty:"packer_sensitive_variables" hcl:"packer_sensitive_variables"`
+	RestartTimeout        *string           `mapstructure:"restart_timeout" cty:"restart_timeout" hcl:"restart_timeout"`
+	Username              *string           `mapstructure:"username" cty:"username" hcl:"username"`
+	Password              *string           `mapstructure:"password" cty:"password" hcl:"password"`
+	SearchCriteria        *string           `mapstructure:"search_criteria" cty:"search_criteria" hcl:"search_criteria"`
+	Filters               []string          `mapstructure:"filters" cty:"filters" hcl:"filters"`
+	UpdateLimit           *int              `mapstructure:"update_limit" cty:"update_limit" hcl:"update_limit"`
+	RebootDelay           *int              `mapstructure:"reboot_delay" cty:"reboot_delay" hcl:"reboot_delay"`
+	UseExtendedValidation *bool             `mapstructure:"use_extended_validation" cty:"use_extended_validation" hcl:"use_extended_validation"`
+	UpdateMaxRetries      *int              `mapstructure:"update_max_retries" cty:"update_max_retries" hcl:"update_max_retries"`
 }
 
 // FlatMapstructure returns a new FlatConfig.
@@ -55,6 +56,7 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"filters":                    &hcldec.AttrSpec{Name: "filters", Type: cty.List(cty.String), Required: false},
 		"update_limit":               &hcldec.AttrSpec{Name: "update_limit", Type: cty.Number, Required: false},
 		"reboot_delay":               &hcldec.AttrSpec{Name: "reboot_delay", Type: cty.Number, Required: false},
+		"use_extended_validation":    &hcldec.AttrSpec{Name: "use_extended_validation", Type: cty.Bool, Required: false},
 		"update_max_retries":         &hcldec.AttrSpec{Name: "update_max_retries", Type: cty.Number, Required: false},
 	}
 	return s

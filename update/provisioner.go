@@ -67,6 +67,10 @@ type Config struct {
 	// Default is 0 seconds
 	RebootDelay int `mapstructure:"reboot_delay"`
 
+	// Adds the ability to use additional logs for validation of windows installations
+	// Default is false
+	UseExtendedValidation bool `mapstructure:"use_extended_validation"`
+
 	// Max times the provisioner will try install the updates
 	// in case of failure.
 	UpdateMaxRetries int `mapstructure:"update_max_retries"`
@@ -117,6 +121,10 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 
 	if p.config.UpdateMaxRetries == 0 {
 		p.config.UpdateMaxRetries = 5
+	}
+
+	if p.config.UseExtendedValidation == "" {
+		p.config.UseExtendedValidation = false
 	}
 
 	return errs
@@ -330,12 +338,13 @@ func (p *Provisioner) windowsUpdateCommand() string {
 		"PowerShell -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand %s",
 		base64.StdEncoding.EncodeToString(
 			encodeUtf16Le(fmt.Sprintf(
-				"%s%s%s -UpdateLimit %d -RebootDelay %d",
+				"%s%s%s -UpdateLimit %d -RebootDelay %d -UseExtendedValidation %d",
 				windowsUpdatePath,
 				searchCriteriaArgument(p.config.SearchCriteria),
 				filtersArgument(p.config.Filters),
 				p.config.UpdateLimit,
-				p.config.RebootDelay))))
+				p.config.RebootDelay,
+				p.config.UseExtendedValidation))))
 }
 
 func (p *Provisioner) windowsUpdateCheckForRebootRequiredCommand() string {

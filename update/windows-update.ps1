@@ -28,6 +28,7 @@ param(
     [string]$SearchCriteria = 'BrowseOnly=0 and IsInstalled=0',
     [string[]]$Filters = @('include:$true'),
     [int]$UpdateLimit = 1000,
+    [bool]$UseExtendedValidation = $false,
     [int]$RebootDelay = 0,
     [switch]$OnlyCheckForRebootRequired = $false
 )
@@ -138,8 +139,17 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
     }
 
     if ($rebootRequired) {
-        Write-Output 'Waiting for the Windows Modules Installer to exit or updates to complete...'
-        Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0 -or (UpdatesComplete)}
+        # If it was requested to use the extended validation, add additional criteria for the exit.  Otherwise, just use the TiWorker process.
+        if($UseExtendedValidation)
+        { 
+            Write-Output 'Waiting for the Windows Modules Installer to exit or updates to complete...'
+            Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0 -or (UpdatesComplete)} 
+        }
+        else 
+        { 
+            Write-Output 'Waiting for the Windows Modules Installer to exit...'
+            Wait-Condition {(Get-Process -ErrorAction SilentlyContinue TiWorker | Measure-Object).Count -eq 0} 
+        }
 
         # If a reboot delay was requested, do that here
         if($null -ne $RebootDelay -and $RebootDelay != 0)
