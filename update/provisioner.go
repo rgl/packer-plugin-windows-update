@@ -345,6 +345,8 @@ func (p *Provisioner) windowsUpdateCommand() string {
 	if p.config.UseExtendedValidation {
 		cmd += " -UseExtendedValidation"
 	}
+
+	return cmd
 }
 
 func (p *Provisioner) windowsUpdateCheckForRebootRequiredCommand() string {
