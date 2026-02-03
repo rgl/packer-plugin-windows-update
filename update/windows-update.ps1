@@ -28,7 +28,7 @@ param(
     [string]$SearchCriteria = 'BrowseOnly=0 and IsInstalled=0',
     [string[]]$Filters = @('include:$true'),
     [int]$UpdateLimit = 1000,
-    [bool]$UseExtendedValidation = $false,
+    [switch]$UseExtendedValidation = $false,
     [int]$RebootDelay = 0,
     [switch]$OnlyCheckForRebootRequired = $false
 )
