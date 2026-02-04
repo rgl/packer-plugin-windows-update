@@ -152,7 +152,7 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
         }
 
         # If a reboot delay was requested, do that here
-        if($null -ne $RebootDelay -and $RebootDelay != 0)
+        if($null -ne $RebootDelay -and $RebootDelay -ne 0)
         {
             Write-Output 'The wait condition has been met, adding the requested delay of $RebootDelay seconds before exiting function...'
             Start-Sleep -Seconds $RebootDelay

@@ -330,23 +330,23 @@ func (p *Provisioner) retryable(ctx context.Context, f func(ctx context.Context)
 }
 
 func (p *Provisioner) windowsUpdateCommand() string {
-	cmd := fmt.Sprintf(
-		"PowerShell -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand %s",
-		base64.StdEncoding.EncodeToString(
-			encodeUtf16Le(fmt.Sprintf(
-				"%s%s%s -UpdateLimit %d -RebootDelay %d",
-				windowsUpdatePath,
-				searchCriteriaArgument(p.config.SearchCriteria),
-				filtersArgument(p.config.Filters),
-				p.config.UpdateLimit,
-				p.config.RebootDelay))))
+	// Build the inner PowerShell command
+	innerCmd := fmt.Sprintf(
+		"%s%s%s -UpdateLimit %d -RebootDelay %d",
+		windowsUpdatePath,
+		searchCriteriaArgument(p.config.SearchCriteria),
+		filtersArgument(p.config.Filters),
+		p.config.UpdateLimit,
+		p.config.RebootDelay)
 
-	// If UseExtendedValidation was requested, then add it to the command
+	// If UseExtendedValidation was requested, add it to the inner command
 	if p.config.UseExtendedValidation {
-		cmd += " -UseExtendedValidation"
+		innerCmd += " -UseExtendedValidation"
 	}
 
-	return cmd
+	return fmt.Sprintf(
+		"PowerShell -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand %s",
+		base64.StdEncoding.EncodeToString(encodeUtf16Le(innerCmd)))
 }
 
 func (p *Provisioner) windowsUpdateCheckForRebootRequiredCommand() string {
