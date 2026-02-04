@@ -33,9 +33,14 @@ param(
     [switch]$OnlyCheckForRebootRequired = $false
 )
 
+# Suppress progress bars for module installation
+$ProgressPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
 # Attempt to install the join module, which will be used later on
-if(!(Get-Module -ListAvailable JoinModule)) { Find-Module -Name JoinModule | Install-Module -Force }
-Get-Module -ListAvailable JoinModule | Import-Module -Force
+if(!(Get-Module -ListAvailable JoinModule)) { Find-Module -Name JoinModule | Install-Module -Force | Out-Null }
+Get-Module -ListAvailable JoinModule | Import-Module -Force | Out-Null
 
 $mock = $false
 
@@ -45,9 +50,6 @@ function ExitWithCode($exitCode) {
     Exit
 }
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-$ProgressPreference = 'SilentlyContinue'
 trap {
     Write-Output "ERROR: $_"
     Write-Output (($_.ScriptStackTrace -split '\r?\n') -replace '^(.*)$','ERROR: $1')
@@ -154,7 +156,7 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
         # If a reboot delay was requested, do that here
         if($null -ne $RebootDelay -and $RebootDelay -ne 0)
         {
-            Write-Output 'The wait condition has been met, adding the requested delay of $RebootDelay seconds before exiting function...'
+            Write-Output ('The wait condition has been met, adding the requested delay of {0} seconds before exiting function...' -f $RebootDelay)
             Start-Sleep -Seconds $RebootDelay
         }
         else 
@@ -329,6 +331,12 @@ function UpdatesComplete
         # Add the overall status properties to the object
         $windows_update | Add-Member -MemberType NoteProperty -Name InstallStatus -Value $overall_install_status
         $windows_update | Add-Member -MemberType NoteProperty -Name Completed -Value $overall_completion_status
+    }
+
+    # Output the update status for visibility
+    foreach($update in $windows_updates)
+    {
+        Write-Host ("  {0}: {1}" -f $update.ArticleID, $update.InstallStatus)
     }
 
     # Determine if there are updates left and set true/false for a return
