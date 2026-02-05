@@ -63,8 +63,9 @@ build {
       "exclude:$_.Title -like '*Preview*'",
       "include:$true",
     ]
-    reboot_delay = 900
     update_limit = 25
+    reboot_delay = 900
+    use_extended_validation = true
   }
 }
 ```
@@ -74,6 +75,8 @@ build {
 **NB** If the `update_limit` attribute is not declared, it defaults to `1000`.
 
 **NB** If the `reboot_delay` attribute is not declared, it defaults to `0`.  reboot_delay is in seconds.  It delays reboots after windows updates have completed.
+
+**NB** If the `use_extended_validation` attribute is not declared, it defaults to 'false'.  use_extended_validation accepts boolean values (true/false).  If set to true, windows update completion is validated by either the exiting of the windows installer process or event logs / CBS logs that validate the completion.  Some Windows updates complete, but do not exit the TiWorker.exe process to validate the completion.  This parameter handles those types of scenarios, ensuring this windows update module finalizes successfully.
 
 The general filter syntax is:
 
