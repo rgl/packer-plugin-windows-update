@@ -19,6 +19,7 @@ type FlatConfig struct {
 	PackerUserVars      map[string]string `mapstructure:"packer_user_variables" cty:"packer_user_variables" hcl:"packer_user_variables"`
 	PackerSensitiveVars []string          `mapstructure:"packer_sensitive_variables" cty:"packer_sensitive_variables" hcl:"packer_sensitive_variables"`
 	RestartTimeout      *string           `mapstructure:"restart_timeout" cty:"restart_timeout" hcl:"restart_timeout"`
+	RebootUntilNoUpdates *bool            `mapstructure:"reboot_until_no_updates" cty:"reboot_until_no_updates" hcl:"reboot_until_no_updates"`
 	Username            *string           `mapstructure:"username" cty:"username" hcl:"username"`
 	Password            *string           `mapstructure:"password" cty:"password" hcl:"password"`
 	SearchCriteria      *string           `mapstructure:"search_criteria" cty:"search_criteria" hcl:"search_criteria"`
@@ -48,6 +49,7 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"packer_user_variables":      &hcldec.AttrSpec{Name: "packer_user_variables", Type: cty.Map(cty.String), Required: false},
 		"packer_sensitive_variables": &hcldec.AttrSpec{Name: "packer_sensitive_variables", Type: cty.List(cty.String), Required: false},
 		"restart_timeout":            &hcldec.AttrSpec{Name: "restart_timeout", Type: cty.String, Required: false},
+		"reboot_until_no_updates":    &hcldec.AttrSpec{Name: "reboot_until_no_updates", Type: cty.Bool, Required: false},
 		"username":                   &hcldec.AttrSpec{Name: "username", Type: cty.String, Required: false},
 		"password":                   &hcldec.AttrSpec{Name: "password", Type: cty.String, Required: false},
 		"search_criteria":            &hcldec.AttrSpec{Name: "search_criteria", Type: cty.String, Required: false},

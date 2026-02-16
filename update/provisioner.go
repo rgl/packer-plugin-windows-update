@@ -63,6 +63,9 @@ type Config struct {
 	// Adds a limit to how many updates are installed at a time
 	UpdateLimit int `mapstructure:"update_limit"`
 
+	// Reboot until all updates are done
+	RebootUntilNoUpdates bool `mapstructure:"reboot_until_no_updates"`
+
 	// Max times the provisioner will try install the updates
 	// in case of failure.
 	UpdateMaxRetries int `mapstructure:"update_max_retries"`
@@ -215,7 +218,22 @@ func (p *Provisioner) update(ctx context.Context, ui packer.Ui, comm packer.Comm
 			return fmt.Errorf("Windows update script did not finish")
 		}
 		switch exitStatus {
-		case 0:
+		case 0: // Atelast one update is installed
+			if p.config.RebootUntilNoUpdates {
+				ui.Say("Rebooting to check for more updates...")
+				err = p.restart(ctx, ui, comm)
+				if err != nil {
+					return err
+				} else {
+					_ , err := p.update(ctx, ui, comm) // Ignoring restartPending using _ as reboot happens since RebootUntilNoUpdates is true.
+					if err != nil {
+						return err
+					}
+				}
+			}
+			ui.Say("All updates installed and no new updates found.")
+			return nil
+		case 1: // No updates installed
 			return nil
 		case 101:
 			restartPending = true
