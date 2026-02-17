@@ -36,7 +36,7 @@ build {
 }
 ```
 
-Note, the plugin automatically restarts the machine after Windows Updates are applied.  The reboots occur similar to the windows-restart provisioner built into packer where packer is aware that a shutdown is in progress.
+Note, the plugin automatically restarts the machine after Windows Updates are applied and repeats until all updates are installed. The reboots occur similar to the windows-restart provisioner built into packer where packer is aware that a shutdown is in progress.
 
 ## Search Criteria, Filters and Update Limit
 
