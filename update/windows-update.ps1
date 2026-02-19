@@ -186,32 +186,17 @@ function Test-IncludeUpdate($filters, $update) {
     return $false
 }
 
-function Get-RemainingUpdates($searchResult, $filters){
-    $remainingUpdateCount = 0
-    foreach($update in $searchResult.Updates) {
-        if(Test-IncludeUpdate $filters $update){
-            $remainingUpdateCount++        
-        }
-    }
-    return $remainingUpdateCount
-}
 
-$updatesInstalled = $false
-$windowsOsVersion = [System.Environment]::OSVersion.Version
-while($true){
-    Write-Output 'Searching for Windows updates...'
-    $updatesToDownloadSize = 0
-    $updatesToDownload = New-Object -ComObject 'Microsoft.Update.UpdateColl'
-    $updatesToInstall = New-Object -ComObject 'Microsoft.Update.UpdateColl'
+function SearchForUpdates($searchCriteria) {
+    
     while ($true) {
         try {
             $updateSession = New-Object -ComObject 'Microsoft.Update.Session'
             $updateSession.ClientApplicationID = 'packer-windows-update'
             $updateSearcher = $updateSession.CreateUpdateSearcher()
-            $searchResult = $updateSearcher.Search($SearchCriteria)
+            $searchResult = $updateSearcher.Search($searchCriteria)
             if ($searchResult.ResultCode -eq 2) {
-                Write-Output "Search for Windows updates succeeded."
-                break
+                return $searchResult, $updateSession
             }
             $searchStatus = LookupOperationResultCode($searchResult.ResultCode)
         } catch {
@@ -220,22 +205,23 @@ while($true){
         Write-Output "Search for Windows updates failed with '$searchStatus'. Retrying..."
         Start-Sleep -Seconds 5
     }
+    
+}
+
+$windowsOsVersion = [System.Environment]::OSVersion.Version
+
+
+while($true){
+    $updatesToDownloadSize = 0
+    $updatesToDownload     = New-Object -ComObject 'Microsoft.Update.UpdateColl'
+    $updatesToInstall      = New-Object -ComObject 'Microsoft.Update.UpdateColl'    
+    $rebootRequired        = $false
+
+
+    Write-Output 'Searching for Windows updates...'
+    $searchResult, $updateSession = SearchForUpdates $SearchCriteria
+
     $rebootRequired = $false
-    
-    $remainigUpdatesCount = Get-RemainingUpdates $searchResult $updateFilters
-
-    Write-Output "Updates to be installed $remainigUpdatesCount"
-
-    if($remainigUpdatesCount -eq 0 -and (-not $updatesInstalled)){
-        Write-Output "No updates installed and no new updates found..."
-        ExitWithCode 0
-    }
-    
-    if($remainigUpdatesCount -eq 0 -and $updatesInstalled){
-        Write-Output "All updates installed and no new updates found..."
-        ExitWithCode 101
-    }
-
     for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
         $update = $searchResult.Updates.Item($i)
 
@@ -291,7 +277,7 @@ while($true){
             break
         }
     }
-    
+
     if ($updatesToDownload.Count) {
         $updateSize = ($updatesToDownloadSize/1024/1024).ToString('0.##')
         Write-Output "Downloading Windows updates ($($updatesToDownload.Count) updates; $updateSize MB)..."
@@ -325,24 +311,36 @@ while($true){
         $updateInstaller = $updateSession.CreateUpdateInstaller()
         $updateInstaller.Updates = $updatesToInstall
 
-        $installRebootRequired = $false
+        $rebootRequired     = $true
+        $moreUpdatesPending = $false
         try {
             $installResult = $updateInstaller.Install()
-            $installRebootRequired = $installResult.RebootRequired
+            $rebootRequired = $installResult.RebootRequired
+
+            if (-not $rebootRequired) {
+                Write-Output "Updates are installed, checking for more as some updates shows up only after installing previous updates..."
+                $searchResult, $updateSession = SearchForUpdates $SearchCriteria
+                $moreUpdatesPending = $searchResult.Count -gt 0
+            }
+
+            if ($moreUpdatesPending) {
+                # More updates found, proceeding to install by continuing the while loop
+                Continue
+            }
+
+            Write-Output "Windows update installation completed. Checking for more updates after a reboot..."
         } catch {
             Write-Warning "Windows update installation failed with error:"
             Write-Warning $_.Exception.ToString()
 
             # Windows update install failed for some reason
-            # restart the machine and try again
-            $rebootRequired = $true
+            # restart the machine and try again and $rebootRequired is by default $true
         }
-        $updatesInstalled = $true
-        ExitWhenRebootRequired ($installRebootRequired -or $rebootRequired)
+        ExitWhenRebootRequired $rebootRequired
     } else {
         ExitWhenRebootRequired $rebootRequired
         Write-Output 'No Windows updates found'
+        ExitWithCode 0
     }
-    Write-Output "Updates installed, Searching for more..."
+
 }
-ExitWithCode 0
