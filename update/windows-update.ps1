@@ -320,7 +320,7 @@ while($true){
             if (-not $rebootRequired) {
                 Write-Output "Updates are installed, checking for more as some updates shows up only after installing previous updates..."
                 $searchResult, $updateSession = SearchForUpdates $SearchCriteria
-                $moreUpdatesPending = $searchResult.Count -gt 0
+                $moreUpdatesPending = $searchResult.Updates.Count -gt 0
             }
 
             if ($moreUpdatesPending) {
