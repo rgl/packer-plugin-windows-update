@@ -301,6 +301,7 @@ if ($updatesToInstall.Count) {
     $installRebootRequired = $false
     try {
         $installResult = $updateInstaller.Install()
+        Write-Output "Windows update installation completed. Checking for more updates after a reboot..."
         $installRebootRequired = $installResult.RebootRequired -or $true
     } catch {
         Write-Warning "Windows update installation failed with error:"
