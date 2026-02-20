@@ -186,161 +186,134 @@ function Test-IncludeUpdate($filters, $update) {
     return $false
 }
 
-
-function SearchForUpdates($searchCriteria) {
-    
-    while ($true) {
-        try {
-            $updateSession = New-Object -ComObject 'Microsoft.Update.Session'
-            $updateSession.ClientApplicationID = 'packer-windows-update'
-            $updateSearcher = $updateSession.CreateUpdateSearcher()
-            $searchResult = $updateSearcher.Search($searchCriteria)
-            if ($searchResult.ResultCode -eq 2) {
-                return $searchResult, $updateSession
-            }
-            $searchStatus = LookupOperationResultCode($searchResult.ResultCode)
-        } catch {
-            $searchStatus = $_.ToString()
-        }
-        Write-Output "Search for Windows updates failed with '$searchStatus'. Retrying..."
-        Start-Sleep -Seconds 5
-    }
-    
-}
-
 $windowsOsVersion = [System.Environment]::OSVersion.Version
 
-
-while($true){
-    $updatesToDownloadSize = 0
-    $updatesToDownload     = New-Object -ComObject 'Microsoft.Update.UpdateColl'
-    $updatesToInstall      = New-Object -ComObject 'Microsoft.Update.UpdateColl'    
-    $rebootRequired        = $false
-
-
-    Write-Output 'Searching for Windows updates...'
-    $searchResult, $updateSession = SearchForUpdates $SearchCriteria
-
-    $rebootRequired = $false
-    for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
-        $update = $searchResult.Updates.Item($i)
-
-        # when the windows update api returns an invalid update object, repair
-        # windows update and signal a reboot to try again.
-        # see https://github.com/rgl/packer-plugin-windows-update/issues/144
-        # see The June 2024 preview update might impact applications using Windows Update APIs
-        #     https://learn.microsoft.com/en-us/windows/release-health/status-windows-11-23h2#3351msgdesc
-        $expectedProperties = @(
-            'Title'
-            'MaxDownloadSize'
-            'LastDeploymentChangeTime'
-            'InstallationBehavior'
-            'AcceptEula'
-        )
-        $properties = $update `
-            | Get-Member $expectedProperties `
-            | Select-Object -ExpandProperty Name
-        if (!$properties -or (Compare-Object $expectedProperties $properties)) {
-            Repair-WindowsUpdate
+Write-Output 'Searching for Windows updates...'
+$updatesToDownloadSize = 0
+$updatesToDownload = New-Object -ComObject 'Microsoft.Update.UpdateColl'
+$updatesToInstall = New-Object -ComObject 'Microsoft.Update.UpdateColl'
+while ($true) {
+    try {
+        $updateSession = New-Object -ComObject 'Microsoft.Update.Session'
+        $updateSession.ClientApplicationID = 'packer-windows-update'
+        $updateSearcher = $updateSession.CreateUpdateSearcher()
+        $searchResult = $updateSearcher.Search($SearchCriteria)
+        if ($searchResult.ResultCode -eq 2) {
+            break
         }
+        $searchStatus = LookupOperationResultCode($searchResult.ResultCode)
+    } catch {
+        $searchStatus = $_.ToString()
+    }
+    Write-Output "Search for Windows updates failed with '$searchStatus'. Retrying..."
+    Start-Sleep -Seconds 5
+}
+$rebootRequired = $false
+for ($i = 0; $i -lt $searchResult.Updates.Count; ++$i) {
+    $update = $searchResult.Updates.Item($i)
 
-        $updateTitle = $update.Title
-        $updateMaxDownloadSize = $update.MaxDownloadSize
-        $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
-        $updateSize = ($updateMaxDownloadSize/1024/1024).ToString('0.##')
-        $updateSummary = "Windows update ($updateDate; $updateSize MB): $updateTitle"
+    # when the windows update api returns an invalid update object, repair
+    # windows update and signal a reboot to try again.
+    # see https://github.com/rgl/packer-plugin-windows-update/issues/144
+    # see The June 2024 preview update might impact applications using Windows Update APIs
+    #     https://learn.microsoft.com/en-us/windows/release-health/status-windows-11-23h2#3351msgdesc
+    $expectedProperties = @(
+        'Title'
+        'MaxDownloadSize'
+        'LastDeploymentChangeTime'
+        'InstallationBehavior'
+        'AcceptEula'
+    )
+    $properties = $update `
+        | Get-Member $expectedProperties `
+        | Select-Object -ExpandProperty Name
+    if (!$properties -or (Compare-Object $expectedProperties $properties)) {
+        Repair-WindowsUpdate
+    }
 
-        if (!(Test-IncludeUpdate $updateFilters $update)) {
-            Write-Output "Skipped (filter) $updateSummary"
-            continue
+    $updateTitle = $update.Title
+    $updateMaxDownloadSize = $update.MaxDownloadSize
+    $updateDate = $update.LastDeploymentChangeTime.ToString('yyyy-MM-dd')
+    $updateSize = ($updateMaxDownloadSize/1024/1024).ToString('0.##')
+    $updateSummary = "Windows update ($updateDate; $updateSize MB): $updateTitle"
+
+    if (!(Test-IncludeUpdate $updateFilters $update)) {
+        Write-Output "Skipped (filter) $updateSummary"
+        continue
+    }
+
+    if ($update.InstallationBehavior.CanRequestUserInput) {
+        Write-Output "Warning The update '$updateTitle' has the CanRequestUserInput flag set (if the install hangs, you might need to exclude it with the filter 'exclude:`$_.InstallationBehavior.CanRequestUserInput' or 'exclude:`$_.Title -like '*$updateTitle*'')"
+    }
+
+    if (($updatesToInstall | Select-Object -ExpandProperty Title) -contains $updateTitle) {
+        Write-Output "Warning, Skipping queueing the duplicated titled update '$updateTitle'."
+        continue
+    }
+
+    Write-Output "Found $updateSummary"
+
+    $update.AcceptEula() | Out-Null
+
+    $updatesToDownloadSize += $updateMaxDownloadSize
+    $updatesToDownload.Add($update) | Out-Null
+
+    $updatesToInstall.Add($update) | Out-Null
+    if ($updatesToInstall.Count -ge $UpdateLimit) {
+        $rebootRequired = $true
+        break
+    }
+}
+
+if ($updatesToDownload.Count) {
+    $updateSize = ($updatesToDownloadSize/1024/1024).ToString('0.##')
+    Write-Output "Downloading Windows updates ($($updatesToDownload.Count) updates; $updateSize MB)..."
+    $updateDownloader = $updateSession.CreateUpdateDownloader()
+    # https://docs.microsoft.com/en-us/windows/desktop/api/winnt/ns-winnt-_osversioninfoexa#remarks
+    if (($windowsOsVersion.Major -eq 6 -and $windowsOsVersion.Minor -gt 1) -or ($windowsOsVersion.Major -gt 6)) {
+        $updateDownloader.Priority = 4 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh), 4 (dpExtraHigh).
+    } else {
+        # For versions lower then 6.2 highest prioirty is 3
+        $updateDownloader.Priority = 3 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh).
+    }
+    $updateDownloader.Updates = $updatesToDownload
+    while ($true) {
+        $downloadResult = $updateDownloader.Download()
+        if ($downloadResult.ResultCode -eq 2) {
+            break
         }
-
-        if ($update.InstallationBehavior.CanRequestUserInput) {
-            Write-Output "Warning The update '$updateTitle' has the CanRequestUserInput flag set (if the install hangs, you might need to exclude it with the filter 'exclude:`$_.InstallationBehavior.CanRequestUserInput' or 'exclude:`$_.Title -like '*$updateTitle*'')"
-        }
-
-        if (($updatesToInstall | Select-Object -ExpandProperty Title) -contains $updateTitle) {
-            Write-Output "Warning, Skipping queueing the duplicated titled update '$updateTitle'."
-            continue
-        }
-
-        Write-Output "Found $updateSummary"
-
-        $update.AcceptEula() | Out-Null
-
-        $updatesToDownloadSize += $updateMaxDownloadSize
-        $updatesToDownload.Add($update) | Out-Null
-
-        $updatesToInstall.Add($update) | Out-Null
-        if ($updatesToInstall.Count -ge $UpdateLimit) {
+        if ($downloadResult.ResultCode -eq 3) {
+            Write-Output "Download Windows updates succeeded with errors. Will retry after the next reboot."
             $rebootRequired = $true
             break
         }
+        $downloadStatus = LookupOperationResultCode($downloadResult.ResultCode)
+        Write-Output "Download Windows updates failed with $downloadStatus. Retrying..."
+        Start-Sleep -Seconds 5
     }
-
-    if ($updatesToDownload.Count) {
-        $updateSize = ($updatesToDownloadSize/1024/1024).ToString('0.##')
-        Write-Output "Downloading Windows updates ($($updatesToDownload.Count) updates; $updateSize MB)..."
-        $updateDownloader = $updateSession.CreateUpdateDownloader()
-        # https://docs.microsoft.com/en-us/windows/desktop/api/winnt/ns-winnt-_osversioninfoexa#remarks
-        if (($windowsOsVersion.Major -eq 6 -and $windowsOsVersion.Minor -gt 1) -or ($windowsOsVersion.Major -gt 6)) {
-            $updateDownloader.Priority = 4 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh), 4 (dpExtraHigh).
-        } else {
-            # For versions lower then 6.2 highest prioirty is 3
-            $updateDownloader.Priority = 3 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh).
-        }
-        $updateDownloader.Updates = $updatesToDownload
-        while ($true) {
-            $downloadResult = $updateDownloader.Download()
-            if ($downloadResult.ResultCode -eq 2) {
-                break
-            }
-            if ($downloadResult.ResultCode -eq 3) {
-                Write-Output "Download Windows updates succeeded with errors. Will retry after the next reboot."
-                $rebootRequired = $true
-                break
-            }
-            $downloadStatus = LookupOperationResultCode($downloadResult.ResultCode)
-            Write-Output "Download Windows updates failed with $downloadStatus. Retrying..."
-            Start-Sleep -Seconds 5
-        }
-    }
-
-    if ($updatesToInstall.Count) {
-        Write-Output 'Installing Windows updates...'
-        $updateInstaller = $updateSession.CreateUpdateInstaller()
-        $updateInstaller.Updates = $updatesToInstall
-
-        $rebootRequired     = $true
-        $moreUpdatesPending = $false
-        try {
-            $installResult = $updateInstaller.Install()
-            $rebootRequired = $installResult.RebootRequired
-
-            if (-not $rebootRequired) {
-                Write-Output "Updates are installed, checking for more as some updates shows up only after installing previous updates..."
-                $searchResult, $updateSession = SearchForUpdates $SearchCriteria
-                $moreUpdatesPending = $searchResult.Updates.Count -gt 0
-            }
-
-            if ($moreUpdatesPending) {
-                # More updates found, proceeding to install by continuing the while loop
-                Continue
-            }
-
-            Write-Output "Windows update installation completed. Checking for more updates after a reboot..."
-        } catch {
-            Write-Warning "Windows update installation failed with error:"
-            Write-Warning $_.Exception.ToString()
-
-            # Windows update install failed for some reason
-            # restart the machine and try again and $rebootRequired is by default $true
-        }
-        ExitWhenRebootRequired $rebootRequired
-    } else {
-        ExitWhenRebootRequired $rebootRequired
-        Write-Output 'No Windows updates found'
-        ExitWithCode 0
-    }
-
 }
+
+if ($updatesToInstall.Count) {
+    Write-Output 'Installing Windows updates...'
+    $updateInstaller = $updateSession.CreateUpdateInstaller()
+    $updateInstaller.Updates = $updatesToInstall
+
+    $installRebootRequired = $false
+    try {
+        $installResult = $updateInstaller.Install()
+        $installRebootRequired = $installResult.RebootRequired -or $true
+    } catch {
+        Write-Warning "Windows update installation failed with error:"
+        Write-Warning $_.Exception.ToString()
+
+        # Windows update install failed for some reason
+        # restart the machine and try again
+        $rebootRequired = $true
+    }
+    ExitWhenRebootRequired ($installRebootRequired -or $rebootRequired)
+} else {
+    ExitWhenRebootRequired $rebootRequired
+    Write-Output 'No Windows updates found'
+}
+
+ExitWithCode 0
