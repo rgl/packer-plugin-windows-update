@@ -38,16 +38,126 @@ $ProgressPreference = 'SilentlyContinue'
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-# Attempt to install the join module, which will be used later on
-if(!(Get-Module -ListAvailable JoinModule)) { Find-Module -Name JoinModule | Install-Module -Force | Out-Null }
-Get-Module -ListAvailable JoinModule | Import-Module -Force | Out-Null
-
 $mock = $false
 
 function ExitWithCode($exitCode) {
     $host.SetShouldExit($exitCode)
     Write-Output "Exiting with code $exitCode"
     Exit
+}
+
+function Join-PSObject {
+    param(
+        [array]$Left,
+        [array]$Right,
+        [Parameter(Mandatory)][string]$LeftKey,
+        [Parameter(Mandatory)][string]$RightKey,
+        [ValidateSet("Inner","Left","Right","Full")]
+        [string]$JoinType = "Inner"
+    )
+
+    # Normalize nulls to empty arrays
+    $Left  = @($Left)
+    $Right = @($Right)
+
+    # Intelligent null/empty handling based on JoinType
+    if (-not $Left -and -not $Right) { return @() }
+
+    switch ($JoinType) {
+        "Inner" {
+            if (-not $Left -or -not $Right) { return @() }
+        }
+        "Left" {
+            if (-not $Left)  { return @() }
+            if (-not $Right) { return $Left }
+        }
+        "Right" {
+            if (-not $Right) { return @() }
+            if (-not $Left)  { return $Right }
+        }
+        "Full" {
+            if (-not $Left)  { return $Right }
+            if (-not $Right) { return $Left }
+        }
+    }
+
+    # Build Right lookup table
+    $rightLookup = @{}
+    foreach ($r in $Right) {
+        $key = $r.$RightKey
+        if ($null -ne $key) {
+            if (-not $rightLookup.ContainsKey($key)) {
+                $rightLookup[$key] = @()
+            }
+            $rightLookup[$key] += $r
+        }
+    }
+
+    $results = @()
+    $matchedRightKeys = @{}
+
+    foreach ($l in $Left) {
+        $key = $l.$LeftKey
+
+        if ($rightLookup.ContainsKey($key)) {
+            foreach ($r in $rightLookup[$key]) {
+
+                $merged = [ordered]@{}
+
+                foreach ($prop in $l.PSObject.Properties) {
+                    $merged[$prop.Name] = $prop.Value
+                }
+
+                foreach ($prop in $r.PSObject.Properties) {
+                    if (-not $merged.Contains($prop.Name)) {
+                        $merged[$prop.Name] = $prop.Value
+                    }
+                }
+
+                $results += [pscustomobject]$merged
+            }
+
+            $matchedRightKeys[$key] = $true
+        }
+        elseif ($JoinType -in @("Left","Full")) {
+
+            $merged = [ordered]@{}
+
+            foreach ($prop in $l.PSObject.Properties) {
+                $merged[$prop.Name] = $prop.Value
+            }
+
+            foreach ($prop in ($Right | Select-Object -First 1).PSObject.Properties) {
+                if (-not $merged.Contains($prop.Name)) {
+                    $merged[$prop.Name] = $null
+                }
+            }
+
+            $results += [pscustomobject]$merged
+        }
+    }
+
+    if ($JoinType -in @("Right","Full")) {
+        foreach ($r in $Right) {
+            $key = $r.$RightKey
+            if (-not $matchedRightKeys.ContainsKey($key)) {
+
+                $merged = [ordered]@{}
+
+                foreach ($prop in ($Left | Select-Object -First 1).PSObject.Properties) {
+                    $merged[$prop.Name] = $null
+                }
+
+                foreach ($prop in $r.PSObject.Properties) {
+                    $merged[$prop.Name] = $prop.Value
+                }
+
+                $results += [pscustomobject]$merged
+            }
+        }
+    }
+
+    return $results
 }
 
 trap {
@@ -275,24 +385,41 @@ function UpdatesComplete
         }
     }
 
-    # If the CBS KB Logs and the Event log KB Logs are populated, join them to find an overall status.
-    # Otherwise, just use either the event or cbs logs
-    if($null -ne $cbs_kb_logs -and $null -ne $event_kb_logs)
+    # Create an empty array of install logs that will be our custom object used as a standard comparison
+    $hotfix_install_logs = @()
+
+    # Get all of the installed hotfixes
+    try { $hotfix_install_statuses = Get-HotFix -ErrorAction SilentlyContinue -WarningAction SilentlyContinue } catch { Write-Output "Error obtaining logs using Get-Hotfix $($_.Exception.Message)" }
+
+    # Search the Get-Hotfix logs for additional patch details
+    if($null -ne $hotfix_install_statuses)
     {
-        Write-Output "Joining CBS and Event logs for Windows Update status..."
-        $windows_updates = Join-Object -LeftObject $event_kb_logs -RightObject $cbs_kb_logs -On ArticleId -JoinType Full
+        # All updates in Get-Hotfix are installed, according to their documentation.  So if the hotfix is returned, we append the Install
+        # complete and install status of installed.
+        #
+        # We set the HotFixID as ArticleID just so we can have a single identifier across the sources
+        $hotfix_install_logs = $hotfix_install_statuses | ForEach-Object {
+                                                                            [PSCustomObject]@{
+                                                                                ArticleID             = $_.HotFixID
+                                                                                HotfixID              = $_.HotFixID
+                                                                                HotfixDescription     = $_.Description
+                                                                                HotfixTimeGenerated   = $_.InstalledOn
+                                                                                HotfixInstallComplete = $true
+                                                                                HotfixInstallStatus   = "Installed"
+                                                                            }
+                                                                        }
     }
-    elseif($null -ne $event_kb_logs)
-    {
-        Write-Output "Using Event logs for Windows Update status..."
-        $windows_updates = $event_kb_logs
-    }
-    elseif($null -ne $cbs_kb_logs)
-    {
-        Write-Output "Using CBS logs for Windows Update status..."
-        $windows_updates = $cbs_kb_logs
-    }
-    else 
+
+    # Null out the array we will be processing
+    $windows_updates = @()
+
+    # Join event KB logs to cbs KB logs.  If only one exists, then it returns the other.
+    $windows_updates = Join-PSObject -Left $event_kb_logs -Right $cbs_kb_logs -LeftKey ArticleId -RightKey ArticleId -JoinType Full
+
+    # Join the formed windows event logs to hotfix install logs.  If only one exists, then it returns the other.
+    $windows_updates = Join-PSObject -Left $windows_updates -Right $hotfix_install_logs -LeftKey ArticleId -RightKey ArticleId -JoinType Full
+    
+    if($null -eq $windows_updates -or $windows_updates.Count -eq 0)
     {
         Write-Output "No Additional Windows Update logs found, using just the logs from the session..."  
     }
@@ -300,11 +427,11 @@ function UpdatesComplete
     # Loop through the logs to determine the overall status
     foreach($windows_update in $windows_updates)
     {
-        # If the event install has completed, mark the overall completion status
-        if($windows_update.EventInstallComplete) { $overall_completion_status = $true } else {$overall_completion_status = $false }
+        # If the event install or hotfix install has completed, mark the overall completion status
+        if($windows_update.EventInstallComplete -or $windows_update.HotfixInstallComplete) { $overall_completion_status = $true } else {$overall_completion_status = $false }
 
-        # If the event install status is installed OR the CBS status code is success, then mark the overall status as installed
-        if($windows_update.EventInstallStatus -eq "Installed" -or $windows_update.CBSResultCode -eq "0x00000000")
+        # If the event install status is installed OR the Hotfix install status is installed OR the CBS status code is success, then mark the overall status as installed
+        if($windows_update.EventInstallStatus -eq "Installed" -or $windows_update.HotfixInstallStatus -eq "Installed" -or $windows_update.CBSResultCode -eq "0x00000000")
         {
             $overall_install_status = "Installed"
             $overall_completion_status = $true
