@@ -4,7 +4,7 @@
 
 This is a Packer plugin for installing Windows updates (akin to [rgl/vagrant-windows-update](https://github.com/rgl/vagrant-windows-update)).
 
-**NB** This was only tested with Packer 1.14.1 and the images at [rgl/windows-vagrant](https://github.com/rgl/windows-vagrant), so YMMV.
+**NB** This was only tested with Packer 1.15.0 and the images at [rgl/windows-vagrant](https://github.com/rgl/windows-vagrant), so YMMV.
 
 # Usage
 
@@ -14,7 +14,7 @@ Configure your packer template to require a [release version of the plugin](http
 packer {
   required_plugins {
     windows-update = {
-      version = "0.17.2"
+      version = "0.17.3"
       source  = "github.com/rgl/windows-update"
     }
   }

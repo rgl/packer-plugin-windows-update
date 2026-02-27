@@ -31,18 +31,6 @@ source "qemu" "test" {
   qemuargs = [
     strcontains(var.disk_image, "uefi") ? ["-bios", "/usr/share/ovmf/OVMF.fd"] : null,
     ["-cpu", "host"],
-    ["-device", "qemu-xhci"],
-    ["-device", "virtio-tablet"],
-    ["-device", "virtio-scsi-pci,id=scsi0"],
-    ["-device", "scsi-hd,bus=scsi0.0,drive=drive0"],
-    ["-device", "virtio-net,netdev=user.0"],
-    ["-vga", "qxl"],
-    ["-device", "virtio-serial-pci"],
-    ["-chardev", "socket,path=/tmp/{{ .Name }}-qga.sock,server,nowait,id=qga0"],
-    ["-device", "virtserialport,chardev=qga0,name=org.qemu.guest_agent.0"],
-    ["-chardev", "spicevmc,id=spicechannel0,name=vdagent"],
-    ["-device", "virtserialport,chardev=spicechannel0,name=com.redhat.spice.0"],
-    ["-spice", "unix,addr=/tmp/{{ .Name }}-spice.socket,disable-ticketing"],
   ]
   disk_interface   = "virtio-scsi"
   disk_cache       = "unsafe"
