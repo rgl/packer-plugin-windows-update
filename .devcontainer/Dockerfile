@@ -1,7 +1,7 @@
-# syntax=docker.io/docker/dockerfile:1.21
+# syntax=docker.io/docker/dockerfile:1.23
 
 # see https://github.com/devcontainers/images/blob/main/src/base-debian/manifest.json
-FROM mcr.microsoft.com/devcontainers/base:2.1.6-trixie
+FROM mcr.microsoft.com/devcontainers/base:2.1.7-trixie
 
 RUN <<'EOF'
 #!/usr/bin/bash
