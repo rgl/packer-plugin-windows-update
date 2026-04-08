@@ -68,7 +68,7 @@ build {
 }
 ```
 
-**NB** For more information about the search criteria see the [IUpdateSearcher::Search method](https://docs.microsoft.com/en-us/windows/desktop/api/wuapi/nf-wuapi-iupdatesearcher-search) documentation and the [xWindowsUpdateAgent DSC resource source](https://github.com/PowerShell/xWindowsUpdate/blob/dev/DscResources/MSFT_xWindowsUpdateAgent/MSFT_xWindowsUpdateAgent.psm1).
+**NB** For more information about the search criteria see the [IUpdateSearcher::Search method](https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nf-wuapi-iupdatesearcher-search) documentation and the [xWindowsUpdateAgent DSC resource source](https://github.com/dsccommunity/xWindowsUpdate/tree/master/source/DSCResources/MSFT_xWindowsUpdateAgent).
 
 **NB** If the `update_limit` attribute is not declared, it defaults to `1000`.
 
@@ -88,7 +88,7 @@ The general filter syntax is:
 `EXPRESSION` is a PowerShell expression. When it returns `$true`, the
 `ACTION` is executed and no further filters are evaluated.
 
-Inside an expression, the Windows Update [IUpdate interface](https://msdn.microsoft.com/en-us/library/windows/desktop/aa386099(v=vs.85).aspx) can be referenced by the `$_` variable.
+Inside an expression, the Windows Update [IUpdate interface](https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nn-wuapi-iupdate) can be referenced by the `$_` variable.
 
 # Development
 

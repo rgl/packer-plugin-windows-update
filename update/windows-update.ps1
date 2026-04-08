@@ -1,21 +1,21 @@
 # see Using the Windows Update Agent API | Searching, Downloading, and Installing Updates
-#     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa387102(v=vs.85).aspx
+#     at https://learn.microsoft.com/en-us/windows/win32/wua_sdk/searching--downloading--and-installing-updates
 # see ISystemInformation interface
-#     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386095(v=vs.85).aspx
+#     at https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nn-wuapi-isysteminformation
 # see IUpdateSession interface
-#     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386854(v=vs.85).aspx
+#     at https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nn-wuapi-iupdatesession
 # see IUpdateSearcher interface
-#     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386515(v=vs.85).aspx
+#     at https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nn-wuapi-iupdatesearcher
 # see IUpdateSearcher::Search method
-#     at https://docs.microsoft.com/en-us/windows/desktop/api/wuapi/nf-wuapi-iupdatesearcher-search
+#     at https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nf-wuapi-iupdatesearcher-search
 # see IUpdateDownloader interface
-#     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386131(v=vs.85).aspx
+#     at https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nn-wuapi-iupdatedownloader
 # see IUpdateCollection interface
-#     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386107(v=vs.85).aspx
+#     at https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nn-wuapi-iupdatecollection
 # see IUpdate interface
-#     at https://msdn.microsoft.com/en-us/library/windows/desktop/aa386099(v=vs.85).aspx
+#     at https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nn-wuapi-iupdate
 # see xWindowsUpdateAgent DSC resource
-#     at https://github.com/PowerShell/xWindowsUpdate/blob/dev/DscResources/MSFT_xWindowsUpdateAgent/MSFT_xWindowsUpdateAgent.psm1
+#     at https://github.com/dsccommunity/xWindowsUpdate/tree/master/source/DSCResources/MSFT_xWindowsUpdateAgent
 # NB you can install common sets of updates with one of these settings:
 #       | Name          | SearchCriteria                            | Filters       |
 #       |---------------|-------------------------------------------|---------------|
@@ -269,7 +269,7 @@ if ($updatesToDownload.Count) {
     $updateSize = ($updatesToDownloadSize/1024/1024).ToString('0.##')
     Write-Output "Downloading Windows updates ($($updatesToDownload.Count) updates; $updateSize MB)..."
     $updateDownloader = $updateSession.CreateUpdateDownloader()
-    # https://docs.microsoft.com/en-us/windows/desktop/api/winnt/ns-winnt-_osversioninfoexa#remarks
+    # see https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-osversioninfoa#remarks
     if (($windowsOsVersion.Major -eq 6 -and $windowsOsVersion.Minor -gt 1) -or ($windowsOsVersion.Major -gt 6)) {
         $updateDownloader.Priority = 4 # 1 (dpLow), 2 (dpNormal), 3 (dpHigh), 4 (dpExtraHigh).
     } else {
