@@ -18,7 +18,7 @@ func main() {
 	log.Printf("Starting packer-plugin-windows-update (version %s; commit %s; date %s)", version, commit, date)
 	pps := plugin.NewSet()
 	pps.RegisterProvisioner(plugin.DEFAULT_NAME, new(update.Provisioner))
-	pps.SetVersion(v.InitializePluginVersion(version, ""))
+	pps.SetVersion(v.NewPluginVersion(version, "", ""))
 	err := pps.Run()
 	if err != nil {
 		log.Fatalf("Failed to start: %v", err)
