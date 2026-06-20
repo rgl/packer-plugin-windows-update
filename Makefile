@@ -4,40 +4,48 @@ GOHOSTOS := $(shell go env GOHOSTOS)
 GOHOSTARCH := $(shell go env GOHOSTARCH)
 GOHOSTARCHVERSION := $(shell go env "GO$(shell go env GOHOSTARCH | tr '[:lower:]' '[:upper:]')")
 GORELEASER := $(GOPATH)/bin/goreleaser
-SOURCE_FILES := *.go update/* update/provisioner.hcl2spec.go
+GOVERSIONINFO := $(GOPATH)/bin/goversioninfo
+SOURCE_FILES := *.go update/*
 PLUGIN_PATH := dist/packer-plugin-windows-update_$(GOHOSTOS)_$(GOHOSTARCH)_$(GOHOSTARCHVERSION)/packer-plugin-windows-update_*_$(GOHOSTOS)_$(GOHOSTARCH)$(GOEXE)
 
 # see https://github.com/goreleaser/goreleaser
 # renovate: datasource=github-releases depName=goreleaser/goreleaser extractVersion=^v?(?<version>2\..+)
 GORELEASER_VERSION := 2.16.0
 
+# see https://github.com/josephspurrier/goversioninfo
+# renovate: datasource=github-releases depName=josephspurrier/goversioninfo
+GOVERSIONINFO_VERSION := 1.7.0
+
 all: clean build
 
-init:
+init: $(GORELEASER) $(GOVERSIONINFO)
 	go mod download
 
 $(GORELEASER):
 	go install github.com/goreleaser/goreleaser/v2@v$(GORELEASER_VERSION)
 
-build: init $(GORELEASER) $(SOURCE_FILES)
+$(GOVERSIONINFO):
+	go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v$(GOVERSIONINFO_VERSION)
+
+build: init $(SOURCE_FILES)
 	API_VERSION="$(shell go run . describe 2>/dev/null | jq -r .api_version)" \
 		$(GORELEASER) build --skip=validate --clean --single-target
 
-release-snapshot: init $(GORELEASER) $(SOURCE_FILES)
+release-snapshot: init $(SOURCE_FILES)
 	API_VERSION="$(shell go run . describe 2>/dev/null | jq -r .api_version)" \
 		$(GORELEASER) release --snapshot --skip=publish --clean
 
-release: init $(GORELEASER) $(SOURCE_FILES)
+release: init $(SOURCE_FILES)
 	API_VERSION="$(shell go run . describe 2>/dev/null | jq -r .api_version)" \
 		$(GORELEASER) release --clean
 
 # see https://www.packer.io/guides/hcl/component-object-spec/
 update/provisioner.hcl2spec.go: update/provisioner.go
 	go install github.com/hashicorp/packer-plugin-sdk/cmd/packer-sdc@$(shell go list -m -f '{{.Version}}' github.com/hashicorp/packer-plugin-sdk)
-	go generate ./...
+	go generate update/provisioner.go
 
 clean:
-	rm -rf update/provisioner.hcl2spec.go dist tmp* output-test *.log
+	rm -rf update/provisioner.hcl2spec.go dist tmp* output-test *.log *.syso
 
 test: build
 	./test.sh
