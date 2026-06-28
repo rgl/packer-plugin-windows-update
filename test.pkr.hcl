@@ -30,7 +30,9 @@ source "qemu" "test" {
   memory       = 4096
   qemuargs = [
     strcontains(var.disk_image, "uefi") ? ["-bios", "/usr/share/ovmf/OVMF.fd"] : null,
-    ["-cpu", "host"],
+    ["-cpu", "host,hv-passthrough"],
+    ["-rtc", "base=localtime,clock=host"],
+    ["-no-hpet"],
   ]
   disk_interface   = "virtio-scsi"
   disk_cache       = "unsafe"
