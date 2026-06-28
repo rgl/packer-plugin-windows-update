@@ -44,7 +44,10 @@ source "qemu" "test" {
   iso_checksum     = "none"
   net_device       = "virtio-net"
   shutdown_command = "shutdown /s /t 0 /f /d p:4:1 /c \"Packer Shutdown\""
-  communicator     = "winrm"
+  communicator     = "ssh" # or winrm.
+  ssh_username     = "vagrant"
+  ssh_password     = "vagrant"
+  ssh_timeout      = "4h"
   winrm_username   = "vagrant"
   winrm_password   = "vagrant"
   winrm_timeout    = "4h"
