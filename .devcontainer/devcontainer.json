@@ -16,7 +16,7 @@
       "version": "1.26.4"
     },
     "ghcr.io/devcontainers-extra/features/packer-asdf:2": {
-      "version": "1.15.4"
+      "version": "1.14.1"
     }
   },
   "customizations": {
