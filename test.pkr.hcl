@@ -23,16 +23,14 @@ variable "disk_image" {
 }
 
 source "qemu" "test" {
-  headless     = true
-  accelerator  = "kvm"
-  machine_type = "q35"
-  cpus         = 2
-  memory       = 4096
+  headless = true
+  cpus     = 2
+  memory   = 4096
   qemuargs = [
     strcontains(var.disk_image, "uefi") ? ["-bios", "/usr/share/ovmf/OVMF.fd"] : null,
+    ["-machine", "type=q35,accel=kvm,hpet=off"],
     ["-cpu", "host,hv-passthrough"],
     ["-rtc", "base=localtime,clock=host"],
-    ["-no-hpet"],
   ]
   disk_interface   = "virtio-scsi"
   disk_cache       = "unsafe"
