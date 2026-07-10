@@ -13,7 +13,7 @@
   "postCreateCommand": "bash .devcontainer/setup.sh",
   "features": {
     "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.26.4"
+      "version": "1.26.5"
     },
     "ghcr.io/devcontainers-extra/features/packer-asdf:2": {
       "version": "1.14.1"
